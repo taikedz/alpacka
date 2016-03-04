@@ -25,3 +25,4 @@ else
 	exit 2
 fi
 
+chmod 755 /usr/local/bin/paf
