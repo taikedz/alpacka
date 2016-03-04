@@ -1,0 +1,181 @@
+#! /bin/bash
+
+set -uo pipefail
+
+PACKAGELIST=
+ACTION=
+CLEANUP=
+UPDATE=
+
+ANDSEARCH=yes
+
+
+function printhelp {
+	cat <<EOF
+
+$(basename $0) - the 'tf' script
+
+This script is used on SliTaz systems to perform common package management tasks.
+
+The tool uses sudo to run actions that require root.
+
+Usage
+
+	$(basename $0) [ACTION] TERMS ... [OPTIONS]
+
+ACTIONS
+
+-l|--list
+	List installed packages, uses \`less\` pager.
+
+-s|--show
+	Show details of packages, uses \`less\`pager.
+
+-i|--install
+	Install specified packages.
+
+-r|remove
+	Remove specified packages
+
+-g|--upgrade
+	Upgrade all packages on the system within the same release.
+
+OPTIONS
+
+-u|--update
+	Run an update of package listings.
+	Can be specified without actions, or used with other actions.
+
+-nu|--no-update
+	Don't run an update of package listings.
+	Supercedes a previously set '-u' option.
+
+-c|--cleanup
+	Perform an autoclean and autoremove.
+
+-nc|--no-cleanup
+	Donot perform any autoclean or autoremove
+	Supercedes a previously set '-c' option.
+
+EOF
+}
+
+# Echoes 'yes' on any confirmation, no in all other cases
+function areyousure {
+	read -p "$@ y/N> "
+	yespat='^y|Y|yes|YES|aye$'
+	if [[ "$REPLY" =~ $yespat ]]; then
+		echo "yes"
+	else
+		echo "no"
+	fi
+}
+
+function andsearch {
+	TERM="$1"; shift
+
+	local tazres=$(tazpkg search "$TERM"|egrep -e '-[0-9]')
+
+	while [[ -n "$@" ]]; do
+		tazres=$(echo "$tazres" | grep "$1")
+		shift
+	done
+	echo "$tazres"
+}
+
+function orsearch {
+	local tazres=
+	while [[ -n "$@" ]]; do
+		TERM="$1" ; shift
+		tazres="$tazres $(tazpkg search "$TERM"| egrep -e '-[0-9]')"
+		shift
+	done
+	echo "$tazres"|sort
+}
+
+function tazinstall {
+	while [[ -n "$@" ]]; do
+		sudo tazpkg -gi "$1"
+		shift
+	done
+}
+
+while [[ -n "$@" ]]; do
+	ARG="$1" ; shift
+	case "$ARG" in
+# ACTIONS
+	-l|--list)
+		ACTION=list
+		;;
+	-i|--install)
+		ACTION=install
+		;;
+	-r|--remove)
+		ACTION=remove
+		;;
+	-s|--show)
+		ACTION=show
+		;;
+	-g|--upgrade)
+		ACTION=upgrade
+		;;
+# MODES
+	-c|--cleanup)
+		CLEANUP=yes
+		;;
+	-nc|--no-cleanup)
+		CLEANUP=no
+		;;
+	-u|--update)
+		UPDATE=yes
+		;;
+	-nu|--no-update)
+		UPDATE=no
+		;;
+	--help)
+		printhelp
+		exit 0
+		;;
+	--or)
+		ANDSEARCH=no
+		;;
+	--and)
+		ANDSEARCH=yes
+		;;
+	*)
+		PACKAGELIST="$PACKAGELIST $ARG"
+		;;
+	esac
+done
+
+if [[ $UPDATE = yes ]]; then
+	sudo tazpkg recharge
+fi
+
+
+if [[ $ACTION = install ]]; then
+	[[ -n "$PACKAGELIST" ]] && tazinstall $PACKAGELIST
+elif [[ $ACTION = remove ]]; then
+	[[ -n "$PACKAGELIST" ]] && sudo tazpkg remove $PACKAGELIST
+elif [[ $ACTION = upgrade ]]; then
+	if [[ -n "$PACKAGELIST" ]]; then
+		[[ $( areyousure "Upgrade the entire system and all packages, not just [$PACKAGELIST]?" ) != yes ]] && exit 1
+	fi
+	sudo tazpkg upgrade
+elif [[ $ACTION = list ]]; then
+	tazpkg list | less
+elif [[ $ACTION = show ]]; then
+	[[ -n "$PACKAGELIST" ]] && tazpkg info $PACKAGELIST | less -R
+elif [[ -z "$ACTION" ]]; then
+	[[ -n "$PACKAGELIST" ]] && {
+		if [[ "$ANDSEARCH" = yes ]]; then
+			andsearch $PACKAGELIST | less
+		else
+			orsearch $PACKAGELIST | less
+		fi
+	}
+fi
+
+if [[ $CLEANUP = yes ]]; then
+	sudo tazpkg clean-cache
+fi

@@ -1,0 +1,27 @@
+#!/bin/bash
+
+[[ $UID -gt 0 ]] && {
+echo "You are not root"
+exit 1
+}
+
+function ishere {
+if which "$1" >/dev/null 2>&1 ; then
+	echo "yes"
+else
+	echo "no"
+fi
+}
+
+
+if [[ $(ishere apt) = yes ]]; then
+	cp bin/af /usr/local/bin/paf
+elif [[ $(ishere yum) = yes ]]; then
+	cp bin/yf /usr/local/bin/paf
+elif [[ $(ishere tazpkg) = yes ]]; then
+	cp bin/tf /usr/local/bin/paf
+else
+	echo "Unsupported package management system"
+	exit 2
+fi
+
