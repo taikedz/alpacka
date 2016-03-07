@@ -176,6 +176,6 @@ elif [[ -z "$ACTION" ]]; then
 fi
 
 if [[ $CLEANUP = yes ]]; then
-	sudo apt autoremove $ASSUMEYES
-	sudo apt autoclean $ASSUMEYES
+	sudo apt auto-remove $ASSUMEYES
+	sudo apt auto-clean $ASSUMEYES
 fi
