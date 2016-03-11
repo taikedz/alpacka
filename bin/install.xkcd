@@ -52,9 +52,16 @@ function localinstall {
 			snafun ./install "" ""
 		elif [[ -f install.sh ]]; then
 			snafun ./install.sh "" ""
+		elif [[ -f config.json ]] || [[ -f "$1/config.json" ]]; then
+			snafun composer "$1"       # As requested by
 		fi
 		cd -
 	fi
+}
+
+function composer {
+	[[ ! -f config.json ]] &&  cd "$1"
+	php composer.phar install
 }
 
 function configure-script {
