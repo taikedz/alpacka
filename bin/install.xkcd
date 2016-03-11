@@ -1,4 +1,5 @@
 #!/bin/bash 
+set -u
 
 # Inspired from the xkcd universal install script
 #     See http://xkcd.com/1654/
@@ -18,9 +19,11 @@ Tries a plethora of installers to get the package you want.
 
 	Do not use in production
 
-If run without root proileges, this scirpt will try to use pip in user mode, then try to download a git version locally.
+If run without root proileges, this scirpt will try to use pip in user mode, then try homebrew
 
-If you run it with root permissions, OS package managers will be attempted, then secondary package managers like pip, brew, etc, then a local build will be attempted.
+If you run it with root permissions, OS package managers will be attempted, then secondary package managers like pip, npm, gem, etc
+
+Finally, we'll attempt to download a git repo, then a script directly.
 
 	Do not run in production
 
@@ -80,7 +83,6 @@ function snafun {
 # Try without root access
 
 [[ $UID -ne 0 ]] && snafun pip install "$1" --user
-git clone "https://github.com/$1/$1" 2>&1 >/dev/null && localinstall "$1"
 snafun brew install "$1"
 
 if [[ "$UID" -gt 0 ]]; then
@@ -98,6 +100,10 @@ if [[ -f "$1" ]]; then
 	snafun rpm -i "$1"
 	snafun tazpkg -i "$1"
 fi
+
+# Maybe it's in a local directory?
+
+localinstall "$1"
 
 # Try the actual package managers
 
@@ -124,9 +130,9 @@ snafun pip install "$1"          # Python
 snafun gem install "$1"          # Ruby
 snafun easy_install "" "$1"      # Legacy python
 
-localinstall "$1"
-
 # if all else fails
+
+git clone "https://github.com/$1/$1" 2>&1 >/dev/null && localinstall "$1"
 
 remotescript=/tmp/curl_"$(echo "$1"|sed -r 's/[^a-zA-Z0-9._-]+/_/g')"
 curl "$1" > "$remotescript"
