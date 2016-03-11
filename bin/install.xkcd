@@ -1,0 +1,109 @@
+#!/bin/bash 
+
+# Inspired from the xkcd universal install script
+#     See http://xkcd.com/1654/
+# Needless to say, you should NOT use this in production. Although it would probably work most of the time..... :-/
+
+mkdir -p ~/logs/
+
+helppat="--help|-h"
+if [[ -z "$@" ]] || [[ "$@" =~ $helppat ]]; then
+cat <<EOF
+
+$(basename $0) - A modified version of the xkcd Universal Installer
+
+	Do not use in production
+
+Tries a plethora of installers to get the package you want.
+
+	Inspired by http://xkcd.com/1654/
+
+	Do not use in production
+
+If run without root proileges, this scirpt will try to use pip in user mode, then try to download a git version locally.
+
+If you run it with root permissions, OS package managers will be attempted, then secondary package managers like pip, brew, etc, then a local build will be attempted.
+
+	Do not run in production
+
+The logs are kept in ~/logs
+
+	Do not u...
+	... you're a responsible person I hope.
+
+EOF
+exit
+fi
+
+function wehaz { which "$1" 2>&1 >/dev/null ; }
+
+function snafun {
+	thecommand=$1 ; shift
+	theaction=$1 ; shift
+	thepackage=$1 ; shift
+	theremains="$@"
+
+	wehaz "$thecommand" || return
+
+	$thecommand $theaction $thepackage $theremains 2>&1 | tee -a "~/logs/${thecommand}.log" | tee -a "~/logs/global.log"
+
+	if [[ "$?" -lt 1 ]]; then exit; fi
+}
+
+
+# Try without root access
+
+[[ $UID -ne 0 ]] && snafun pip install "$1" --user
+snafun git clone "https://github.com/$1/$1"
+
+if [[ "$UID" -gt 0 ]]; then
+	echo "[1;33mYou are not root. I trust you are not in production?[0m"
+	exit 1
+fi
+
+echo -e "[1;31m=============\nYou are on your own now.\n\n[0m"
+sleep 1
+
+# Try the actual package managers
+
+snafun dnf install "$1"          # Fedora, RedHat 7+
+snafun yum install "$1"          # All other RPM systems
+snafun apt-get install "$1"      # Debian family, incl Ubuntu
+snafun pacman -Syu "$1"          # Arch standard
+snafun yaourt -Syu "$1" --aur    # More arch, with AUR support
+snafun zypper install "$1"       # OpenSUSE
+snafun emerge "" "$1"            # Gentoo
+snafun tazpkg -gi "$1"           # SliTaz
+snafun pkg install "$1"          # FreeBSD
+
+# Try the secondary package managers
+snafun brew install "$1"
+snafun docker run "$1"
+snafun vagrant up "$1"
+snafun steamcmd "+app_update" "$1" validate
+
+# Try language specific package managers
+snafun npm install "$1"          # Server-side JavaScript
+snafun pear install "$1"         # PHP
+snafun cpanm "" "$1"             # Perl
+snafun pip install "$1"          # Python
+snafun gem install "$1"          # Ruby
+snafun easy_install "" "$1"      # Legacy python
+
+# more and more manual
+
+if [[ -d "$1" ]]; then
+	( cd "$1";./configure; make clean; make; make install )  2>&1 |tee -a ~/logs/dir.log
+fi
+
+# if all else fails
+
+remotescript=/tmp/curl_"$(echo "$1"|sed -r 's/[^a-zA-Z0-9._-]+/_/g')"
+curl "$1" > "$remotescript"
+if [[ $? -lt 1 ]]; then
+	cat "$remotescript" | bash 2>&1 |tee -a ~/logs/pip.log
+fi
+
+# and if even that failed
+
+echo "[1;31m;..... WAT. [0m"

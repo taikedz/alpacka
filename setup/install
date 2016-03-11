@@ -5,6 +5,12 @@ echo "You are not root"
 exit 1
 }
 
+if [[ "$@" =~ xkcd ]]; then
+	cp bin/install.xkcd /usr/local/bin/
+	echo "The 'install.xkcd' command is now available. You masochist."
+	exit
+fi
+
 function ishere {
 if which "$1" >/dev/null 2>&1 ; then
 	echo "yes"
