@@ -6,28 +6,28 @@ exit 1
 }
 
 if [[ "$@" =~ xkcd ]]; then
-	cp bin/install.xkcd /usr/local/bin/
-	echo "The 'install.xkcd' command is now available. You masochist."
+	bin/install.xkcd --help
+	read -p "Are you sure?  y/N> "
+	[[ $REPLY = 't' ]] && {
+		cp bin/install.xkcd /usr/local/bin/
+		echo "The 'install.xkcd' command is now available. You masochist."
+	}
 	exit
 fi
 
 function ishere {
-if which "$1" >/dev/null 2>&1 ; then
-	echo "yes"
-else
-	echo "no"
-fi
+which "$1" >/dev/null 2>&1
 }
 
 
-if [[ $(ishere apt) = yes ]]; then
+if ishere apt; then
 	cp bin/af /usr/local/bin/paf
-elif [[ $(ishere yum) = yes ]]; then
+elif ishere yum; then
 	cp bin/yf /usr/local/bin/paf
-elif [[ $(ishere tazpkg) = yes ]]; then
+elif ishere tazpkg; then
 	cp bin/tf /usr/local/bin/paf
 else
-	echo "Unsupported package management system"
+	echo "Unsupported package management system. xkcd?"
 	exit 2
 fi
 
