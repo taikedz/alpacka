@@ -103,7 +103,7 @@ fi
 
 # Maybe it's in a local directory?
 
-localinstall "$1"
+snafun localinstall "$1"
 
 # Try the actual package managers
 
@@ -132,7 +132,7 @@ snafun easy_install "" "$1"      # Legacy python
 
 # if all else fails
 
-git clone "https://github.com/$1/$1" 2>&1 >/dev/null && localinstall "$1"
+git clone "https://github.com/$1/$1" 2>&1 >/dev/null && snafun localinstall "$1" ""
 
 remotescript=/tmp/curl_"$(echo "$1"|sed -r 's/[^a-zA-Z0-9._-]+/_/g')"
 curl "$1" > "$remotescript"
