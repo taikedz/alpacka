@@ -4,8 +4,6 @@
 #     See http://xkcd.com/1654/
 # Needless to say, you should NOT use this in production. Although it would probably work most of the time..... :-/
 
-mkdir -p ~/logs/
-
 helppat="--help|-h"
 if [[ -z "$@" ]] || [[ "$@" =~ $helppat ]]; then
 cat <<EOF
@@ -35,6 +33,34 @@ EOF
 exit
 fi
 
+mkdir -p ~/logs/
+
+
+function localinstall {
+	if [[ -d "$1" ]]; then
+		cd "$1"
+		if [[ -f configure ]] && [[ -f Makefile ]]; then
+			snafun configure-script "" ""
+		elif [[ -f setup ]]; then
+			snafun ./setup "" ""
+		elif [[ -f setup.sh ]]; then
+			snafun ./setup.sh "" ""
+		elif [[ -f install ]]; then
+			snafun ./install "" ""
+		elif [[ -f install.sh ]]; then
+			snafun ./install.sh "" ""
+		fi
+		cd -
+	fi
+}
+
+function configure-script {
+	make clean
+	./configure
+	make
+	make install
+}
+
 function wehaz { which "$1" 2>&1 >/dev/null ; }
 
 function snafun {
@@ -54,7 +80,7 @@ function snafun {
 # Try without root access
 
 [[ $UID -ne 0 ]] && snafun pip install "$1" --user
-snafun git clone "https://github.com/$1/$1"
+git clone "https://github.com/$1/$1" 2>&1 >/dev/null && localinstall "$1"
 
 if [[ "$UID" -gt 0 ]]; then
 	echo "[1;33mYou are not root. I trust you are not in production?[0m"
@@ -64,10 +90,18 @@ fi
 echo -e "[1;31m=============\nYou are on your own now.\n\n[0m"
 sleep 1
 
+# Local package?
+
+if [[ -f "$1" ]]; then
+	snafun dpkg -i "$1"
+	snafun rpm -i "$1"
+	snafun tazpkg -i "$1"
+fi
+
 # Try the actual package managers
 
 snafun dnf install "$1"          # Fedora, RedHat 7+
-snafun yum install "$1"          # All other RPM systems
+snafun yum install "$1"          # All other RPM systems with yum
 snafun apt-get install "$1"      # Debian family, incl Ubuntu
 snafun pacman -Syu "$1"          # Arch standard
 snafun yaourt -Syu "$1" --aur    # More arch, with AUR support
@@ -90,18 +124,14 @@ snafun pip install "$1"          # Python
 snafun gem install "$1"          # Ruby
 snafun easy_install "" "$1"      # Legacy python
 
-# more and more manual
-
-if [[ -d "$1" ]]; then
-	( cd "$1";./configure; make clean; make; make install )  2>&1 |tee -a ~/logs/dir.log
-fi
+localinstall "$1"
 
 # if all else fails
 
 remotescript=/tmp/curl_"$(echo "$1"|sed -r 's/[^a-zA-Z0-9._-]+/_/g')"
 curl "$1" > "$remotescript"
-if [[ $? -lt 1 ]]; then
-	cat "$remotescript" | bash 2>&1 |tee -a ~/logs/pip.log
+if [[ $? = 0 ]]; then
+	cat "$remotescript" | bash 2>&1 |tee -a ~/logs/curl.log
 fi
 
 # and if even that failed
