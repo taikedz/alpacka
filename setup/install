@@ -27,8 +27,10 @@ elif ishere yum; then
 elif ishere tazpkg; then
 	cp bin/tf /usr/local/bin/paf
 else
-	echo "Unsupported package management system. xkcd?"
+	echo "Unsupported package management system. Try xkcd instead?"
 	exit 2
 fi
 
-chmod 755 /usr/local/bin/paf
+cp bin/pafs /usr/local/bin/
+
+chmod 755 /usr/local/bin/paf{,s}

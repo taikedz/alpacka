@@ -17,3 +17,22 @@ Because I am too lazy to remember which command has what option names; and in so
 ## Ubuntu support, and Debian
 
 My wrapper wraps around the `apt` command, which offers some nice features regarding output display (the only reason, really). I'll get round to elegantly adding "apt-get" usage instead soon.
+
+# `pafs`
+
+The `pafs` tool is a search-only tool that will search over every and any package manager you happen to have installed.
+
+It will then display all the results in a `less` session, or you can dump to stdout.
+
+You will need to use the appropriate package manager to perform the installation.
+
+Supported package managers include:
+
+* apt
+* dnf, yum
+* pacman
+* zypper
+* tazpkg
+* pip
+* ruby gem
+* more to come...

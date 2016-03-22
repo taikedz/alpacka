@@ -62,7 +62,10 @@ function doupdate {
 	fi
 }
 
-if [[ -f /usr/bin/apt-cache ]]; then
+if [[ -f /usr/local/bin/paf ]]; then # support our own wrapper :-)
+	doupdate paf -u
+	searchit paf "$ARGS"
+elif [[ -f /usr/bin/apt-cache ]]; then
 	doupdate apt-get update
 	searchit APT apt-cache search "$ARGS"
 elif [[ -f /usr/bin/dnf ]]; then
