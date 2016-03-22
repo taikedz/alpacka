@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Search all over the place for packages
+
+function faile {
+	echo "[1;31m$@[0m" 1>&2
+	exit 1
+}
+
+function warne {
+	echo "[1;33m$@[0m" 1>&2
+}
+
+function debuge {
+	if [[ "$DEBUGMODE" = yes ]]; then
+		echo "[1;34m$@[0m" 1>&2
+	fi
+}
+
+DOUPDATE=no
+DEBUGMODE=no
+ARGS=
+ARG1=
+FILTER=
+
+while [[ -n "$@" ]]; do
+	ARG=$1 ; shift
+	case "$ARG" in
+	-u|--update)
+		DOUPDATE=yes
+		;;
+	--debug)
+		DEBUGMODE=yes
+		;;
+	--filter)
+		FILTER="$(echo $1|sed -r "s/[\"']//g")" ; shift
+	*)
+		ARGS="$ARGS $ARG"
+		;;
+	esac
+done
+
+function firstarg { ARG1="$1" ; }
+
+SFILE="/tmp/searchfile_$(date "+%F%T"|md5sum|cut -d' ' -f1)"
+touch "$SFILE" || faile "Cannot create temp file"
+
+function searchit {
+	debuge "$@"
+	local SOURCE=$1 ; shift
+	echo -e "[1;34m$SOURCE\n=============[0m\n" >> "$SFILE"
+	if [[ -n "$FILTER" ]]; then
+		$@ | grep -P "$FILTER" >> "$SFILE"
+	else
+		$@ >> "$SFILE"
+	fi
+}
+
+function doupdate {
+	if [[ "$DOUPDATE" = yes ]]; then
+		$@
+	fi
+}
+
+if [[ -f /usr/bin/apt-cache ]]; then
+	doupdate apt-get update
+	searchit APT apt-cache search "$ARGS"
+elif [[ -f /usr/bin/dnf ]]; then
+	searchit dnf dnf search "$ARGS"
+	searchit dnfgroup dnf groupsearch "$ARGS"
+elif [[ -f /usr/bin/yum ]]; then
+	searchit yum yum search "$ARGS"
+	searchit yumgroup yum groupsearch "$ARGS"
+elif [[ -f /usr/bin/zypper ]]; then
+	searchit zypper zypper search "$ARGS"
+elif [[ -f /usr/bin/pacman ]]; then
+	doupdate pacman -Sy
+	searchit pacman pacman -Qs "$ARGS"
+elif [[ -f /usr/bin/tazpkg ]]; then
+	firstarg
+	searchit tazpkg tazpkg search "$ARG1"
+fi
+
+if [[ -f /usr/bin/pip ]]; then searchit pip pip search "$ARGS" ; fi
+if [[ -f /usr/bin/gem ]]; then searchit gem gem search "$ARGS" ; fi
+
+if [[ -f /usr/bin/npm ]]; then searchit npm npm search "$ARGS" ; fi
+
+
+# ===========
+
+less -R "$SFILE"
