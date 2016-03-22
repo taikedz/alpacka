@@ -2,6 +2,43 @@
 
 # Search all over the place for packages
 
+function printhelp {
+cat <<EOHELP
+
+$(basename $0) - Search for packages everywhere!
+
+(C) Tai Kedzierski, released under GPL v3
+
+
+
+This script was inspired by the "Universal xkcd installer"
+
+Rather than installing packages however, it searches a wide range of sources, including (as apporpriate):
+
+
+* standard repositories for apt, dnf/yum, pacman, tazpkg and emerge systems
+* AUR if yaourt is detected, in which case yaourt search is used instead of pacman
+* Where detected, cpan (this needs to have been initialized first), pear, pip, ruby gems, npm
+* searches for local .deb and .rpm files depending on detection of apt-get or yum/dnf
+* performs a basic web search for github repositories
+* and finally looks for directories with "Makefile" or "install.sh" files
+
+The results are then displayed in \`less\`, and you can see which repositories or locations yeilded a result.
+
+OPTIONS
+
+--update|-u
+	Whether to run the package list update mechanism, if appropriate
+
+--filter|-f
+	filter results using a perl-style regular expression (\`grep -P\`)
+
+--help|-h
+	Prints this help
+
+EOHELP
+}
+
 function faile {
 	echo "[1;31m$@[0m" 1>&2
 	exit 1
@@ -11,11 +48,16 @@ function warne {
 	echo "[1;33m$@[0m" 1>&2
 }
 
+function infoe {
+	echo "[1;32m$@[0m" 1>&2
+}
+
 function debuge {
 	if [[ "$DEBUGMODE" = yes ]]; then
 		echo "[1;34m$@[0m" 1>&2
 	fi
 }
+
 
 DOUPDATE=no
 DEBUGMODE=no
@@ -32,8 +74,12 @@ while [[ -n "$@" ]]; do
 	--debug)
 		DEBUGMODE=yes
 		;;
-	--filter)
+	-f|--filter)
 		FILTER="$(echo $1|sed -r "s/[\"']//g")" ; shift
+		;;
+	-h|--help)
+		printhelp
+		exit 0
 		;;
 	*)
 		ARGS="$ARGS $ARG"
@@ -42,14 +88,24 @@ while [[ -n "$@" ]]; do
 done
 
 function firstarg { ARG1="$1" ; }
+firstarg "$ARGS"
+
+debuge "ARG1=$ARG1"
+
+function docpan { echo "m $ARG1" | cpan ; }
+
+if [[ -z "$ARGS" ]]; then
+	faile "You must supply at least one package name to search."
+fi
 
 SFILE="/tmp/searchfile_$(date "+%F%T"|md5sum|cut -d' ' -f1)"
 touch "$SFILE" || faile "Cannot create temp file"
 
 function searchit {
+	infoe "Searching $1"
 	debuge "$@"
 	local SOURCE=$1 ; shift
-	echo -e "[1;34m$SOURCE\n=============[0m\n" >> "$SFILE"
+	echo -e "\n[1;34m\t$SOURCE\n=============[0m" >> "$SFILE"
 	if [[ -n "$FILTER" ]]; then
 		$@ | grep -P "$FILTER" >> "$SFILE"
 	else
@@ -59,13 +115,13 @@ function searchit {
 
 function doupdate {
 	if [[ "$DOUPDATE" = yes ]]; then
-		$@
+		sudo $@
 	fi
 }
 
 if [[ -f /usr/local/bin/paf ]]; then # support our own wrapper :-)
 	doupdate paf -u
-	searchit paf "$ARGS"
+	searchit paf paf "$ARGS"
 elif [[ -f /usr/bin/apt-cache ]]; then
 	doupdate apt-get update
 	searchit APT apt-cache search "$ARGS"
@@ -77,20 +133,67 @@ elif [[ -f /usr/bin/yum ]]; then
 	searchit yumgroup yum groupsearch "$ARGS"
 elif [[ -f /usr/bin/zypper ]]; then
 	searchit zypper zypper search "$ARGS"
+elif [[ -f /usr/bin/yaourt ]]; then
+	doupdate yaourt -Sy
+	searchit yaourt yaourt -Qs "$ARGS"
 elif [[ -f /usr/bin/pacman ]]; then
 	doupdate pacman -Sy
 	searchit pacman pacman -Qs "$ARGS"
+elif [[ -f /usr/bin/emerge ]]; then
+	doupdate emerge sync
+	searchit emerge emerge -s "$ARG1"
 elif [[ -f /usr/bin/tazpkg ]]; then
-	firstarg
+	doupdate tazpkg recharge
 	searchit tazpkg tazpkg search "$ARG1"
 fi
 
+# do these need explicit updates?
 if [[ -f /usr/bin/pip ]]; then searchit pip pip search "$ARGS" ; fi
 if [[ -f /usr/bin/gem ]]; then searchit gem gem search "$ARGS" ; fi
-
 if [[ -f /usr/bin/npm ]]; then searchit npm npm search "$ARGS" ; fi
+if [[ -f /usr/bin/cpan ]]; then searchit cpan docpan ; fi
+if [[ -f /usr/bin/pear ]]; then searchit pear pear search "$ARGS" ; fi
 
+# package maangement locally
+
+function findpkg {
+	EXT=.$1 ; shift
+	locate "$ARG1" | egrep "^${HOME}/.+$EXT\$"
+}
+
+function findfile {
+	SIGFILE=$1 ; shift
+	locate "$ARG1" | egrep "^${HOME}/.+/$SIGFILE\$"
+}
+
+if [[ -f /usr/bin/dpkg ]]; then
+	searchit "Local deb files" findpkg ".deb"
+elif [[ -f /usr/bin/yum ]] || [[ -f /usr/bin/dpkg ]]; then
+	searchit "Local RPM files" findpkg ".rpm"
+fi
+
+# ================
+# some more outlandish searches
+
+function searchweb {
+	local QUERY="$(echo $1|base64 -di)" ; shift
+	local PATTERN="$(echo $1|base64 -di)" ; shift
+	elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=$QUERY" | grep -P "$PATTERN" -o|sort|uniq
+}
+
+if [[ -f /usr/bin/elinks ]]; then
+	# ---- Github
+	searchit github searchweb $(echo "github%20\"$ARG1\""|base64 -w 0) $(echo "https://github.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9._-]+"|base64 -w 0)
+else
+	warne "We need elinks for searching the web"
+fi
+
+# ===============
+# Local builds
+
+searchit "Local buildables" findpkg 'Makefile|install\.sh'
 
 # ===========
 
 less -R "$SFILE"
+rm "$SFILE"
