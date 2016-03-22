@@ -53,7 +53,7 @@ function localinstall {
 		elif [[ -f install.sh ]]; then
 			snafun ./install.sh "" ""
 		elif [[ -f config.json ]] || [[ -f "$1/config.json" ]]; then
-			snafun composer "$1"       # As requested by
+			snafun composer "$1"
 		fi
 		cd -
 	fi
