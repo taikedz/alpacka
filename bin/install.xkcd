@@ -19,7 +19,7 @@ Tries a plethora of installers to get the package you want.
 
 	Do not use in production
 
-If run without root proileges, this scirpt will try to use pip in user mode, then try homebrew
+If run without root privileges, this script will try to use pip in user mode, then try homebrew
 
 If you run it with root permissions, OS package managers will be attempted, then secondary package managers like pip, npm, gem, etc
 
@@ -149,4 +149,4 @@ fi
 
 # and if even that failed
 
-echo "[1;31m;..... WAT. [0m"
+echo "[1;31m..... WAT. [0m"
