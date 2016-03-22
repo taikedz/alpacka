@@ -34,6 +34,7 @@ while [[ -n "$@" ]]; do
 		;;
 	--filter)
 		FILTER="$(echo $1|sed -r "s/[\"']//g")" ; shift
+		;;
 	*)
 		ARGS="$ARGS $ARG"
 		;;
