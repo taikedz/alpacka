@@ -51,11 +51,11 @@ function get_options_list {
 }
 
 function has_option {
-	if [[ "\:$1\:" =~ "$ALPOPTIONS" ]]; then
-		infoe "$1 in $ALPOPTIONS"
+	if [[ ":$1:" =~ "$ALPOPTIONS" ]]; then
+		debuge "$1 in $ALPOPTIONS"
 		return 0
 	fi
-	infoe "$1 not in $ALPOPTIONS"
+	debuge "$1 not in $ALPOPTIONS"
 	return 1
 }
 
