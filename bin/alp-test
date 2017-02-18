@@ -1,0 +1,358 @@
+#!/bin/bash
+
+### alp Usage:help
+#
+# The `alp` command
+# Cross-distro wrapper to give a standardized command
+# line utility for searching a number of repositories.
+#
+# (C) 2017 Tai Kedzierski
+# Released under GPLv3
+#
+# ---------------------------------------------------
+#
+# (Default)
+# Without any switches or options, alp searches packages and
+# displays the result in the standard pager in PAGER. If no
+# page is specified, uses less. If less is not installed or
+# the -O option is supplied, then dumps to stdout.
+#
+# Where multiple terms are specified, results returned
+# depend on how the package manager handles this:
+#
+# 	apt : looks for all terms in the name and description
+# 	yum/dnf : looks for all terms in the name and description
+# 	tazpkg : search for the first term, and filter on the remainder
+# 	pacman : (tbd)
+#
+#
+# Standard commands
+# -----------------
+#
+# If several of these command switches are specified, only the last one
+# will be applied.
+#
+# -s|--show PACKAGE
+# 	Show the information for a single package
+#
+# -l |--list
+# 	List the installed packages
+#
+# -i|--install PACKAGES ...
+# 	Install the specified packages.
+#
+# 	If an operation is currently underway, the packages are added
+# 	to a waiting list.
+#
+# -g|--upgrade [PACKAGES ...]
+# 	Upgrade the specified packages.
+#
+# 	If no packages are specified, updates all packages.
+#
+# 	If an operation is currently underway, the action is queued
+#
+# -a|--add-repository
+# 	Add a repository in systems which allow it (yum/dnf and apt supported)
+#
+#
+# Additional commands
+# -------------------
+#
+# -u|--update
+# 	Update the local cache before running the main command.
+# 	Does not apply to yum/dnf
+#
+# -c|--clean
+# 	Cleans the cache of packages (apt only?)
+#
+# -O|--stdout
+# 	Forcibly dump to stdout
+#
+# 	You can specify a custom pager by setting the
+# 	PAGER environment variable.
+#
+#
+# Additional Package Management Systems
+# =====================================
+#
+# It is possible to specify other repositories to search on top of the
+# main distro repositories. 
+#
+# -D|--no-distro-package-manager
+# 	Switch off search on the default package manager
+#
+# To specify other package managers to search, populate a colon-
+# separated list from the following list into ALPACKAS
+#
+# * cpan -- search Perl's CPAN packages
+# * pip -- search Python's pip packages
+# * compose -- search PHP's Composer packages
+# * gem -- seach Ruby's Gems
+# * node -- search Nod.js's packages
+# * aur -- use the Arch User Repository
+#
+# For example, to search for a markdown package in pip and node, and
+# not in the distro's normal package manager:
+#
+# 	ALPACKAS=pip:node alp -D markdown
+#
+# Only search, show and install actions are guaranteed to work for
+# additional package management systems.
+#
+###/doc
+#!/bin/bash
+
+### printhelp Usage:bbuild
+# Write your help as documentation comments in your script
+#
+# If you need to output the help from a running script, call the
+# `printhelp` function and it will print the help documentation
+# in the current script to stdout
+#
+# A help comment looks like this:
+#
+#	### <title> Usage:help
+#	#
+#	# <some content>
+#	#
+#	# end with "###/doc" on its own line (whitespaces before
+#	# and after are OK)
+#	#
+#	###/doc
+#
+###/doc
+
+CHAR='#'
+
+function printhelp {
+	USAGESTRING=help
+	TARGETFILE=$0
+	if [[ -n "$*" ]]; then USAGESTRING="$1" ; shift; fi
+	if [[ -n "$*" ]]; then TARGETFILE="$1" ; shift; fi
+
+        echo -e "\n$(basename "$TARGETFILE")\n===\n"
+        local SECSTART='^\s*'"$CHAR$CHAR$CHAR"'\s+(.+?)\s+Usage:'"$USAGESTRING"'\s*$'
+        local SECEND='^\s*'"$CHAR$CHAR$CHAR"'\s*/doc\s*$'
+        local insec="$(mktemp --tmpdir)"; rm "$insec"
+        cat "$TARGETFILE" | while read secline; do
+                if [[ "$secline" =~ $SECSTART ]]; then
+                        touch "$insec"
+                        echo -e "${BASH_REMATCH[1]}\n---\n"
+                elif [[ -f $insec ]]; then
+                        if [[ "$secline" =~ $SECEND ]]; then
+                                rm "$insec"
+                        else
+				echo "$secline" | sed -r "s/^\s*$CHAR//g"
+                        fi
+                fi
+        done
+        if [[ -f "$insec" ]]; then
+                echo "WARNING: Non-terminated help block." 1>&2
+		rm "$insec"
+        fi
+	echo ""
+}
+
+### automatic help Usage:bbuild
+#
+# automatically call help if "--help" is detected in arguments
+#
+###/doc
+if [[ "$@" =~ --help ]]; then
+	printhelp
+	exit 0
+fi
+#!/bin/bash
+
+#!/bin/bash
+
+export CDEF="[0m"
+export CRED="[31m"
+export CGRN="[32m"
+export CYEL="[33m"
+export CBLU="[34m"
+export CBRED="[1;31m"
+export CBGRN="[1;32m"
+export CBYEL="[1;33m"
+export CBBLU="[1;34m"
+
+MODE_DEBUG=no
+
+### debuge MESSAGE Usage:bbuild
+# print a blue debug message to stderr
+# only prints if MODE_DEBUG is set to "yes"
+###/doc
+function debuge {
+	if [[ "$MODE_DEBUG" = yes ]]; then
+		echo -e "${CBBLU}DEBUG:$CBLU$*$CDEF" 1>&2
+	fi
+}
+
+### infoe MESSAGE Usage:bbuild
+# print a green informational message to stderr
+###/doc
+function infoe {
+	echo -e "$CGRN$*$CDEF" 1>&2
+}
+
+### warne MESSAGE Usage:bbuild
+# print a yellow warning message to stderr
+###/doc
+function warne {
+	echo -e "${CBYEL}WARN:$CYEL $*$CDEF" 1>&2
+}
+
+### faile MESSAGE CODE Usage:bbuild
+# print a red failure message to stderr and exit with CODE
+# CODE must be a number
+# if no code is specified, error code 127 is used
+###/doc
+function faile {
+	local MSG=
+	local ARG=
+	local ERCODE=127
+	local numpat='^[0-9]+$'
+	while [[ -n "$*" ]]; do
+		ARG=$1 ; shift
+		if [[ -z "$*" ]] && [[ "$ARG" =~ $numpat ]]; then
+			ERCODE=$ARG
+		else
+			MSG="$MSG $ARG"
+		fi
+	done
+	echo "${CBRED}ERROR FAIL:$CRED$MSG$CDEF" 1>&2
+	exit "$ERCODE"
+}
+
+function dumpe {
+	echo -n "[1;35m$*" 1>&2
+	echo -n "[0;35m" 1>&2
+	cat - 1>&2
+	echo -n "[0m" 1>&2
+}
+
+if [[ "$*" =~ --debug ]]; then
+	MODE_DEBUG=yes
+fi
+
+#!/bin/bash
+
+function get_main_action {
+	ALPACTION=
+	for action in "$@"
+	do
+		if [[ "$action" =~ $(echo "^-l|--list|-s|--show|-i|--install|-g|--upgrade$") ]]; then
+			debuge "Processing action candidate $action"
+			case "$action" in
+				-l|--list)
+					ALPACTION=list
+					;;
+				-s|--show)
+					ALPACTION=show
+					;;
+				-i|--install)
+					ALPACTION=install
+					;;
+				-g|--upgrade)
+					ALPACTION=upgrade
+					;;
+			esac
+		fi
+	done
+
+	#echo "$ALPACTION"
+}
+
+function get_options_list {
+	ALPOPTIONS=":"
+
+	for option in "$@"
+	do
+		if [[ "$option" =~ $(echo "^-u|--update|-c|--clean|-O|--stdout$") ]]; then
+			debuge "Processing option candidate $option"
+			case "$option" in
+				-u|--update)
+					ALPOPTIONS="${ALPOPTIONS}update:"
+					;;
+				-c|--clean)
+					ALPOPTIONS="${ALPOPTIONS}clean:"
+					;;
+				-O|--stdout)
+					ALPOPTIONS="${ALPOPTIONS}stdout:"
+					;;
+			esac
+		fi
+	done
+
+	#echo "$ALPOPTIONS"
+}
+
+function has_option {
+	if [[ ":$ALPOPTIONS:" =~ "$1" ]]; then
+		debuge "$1 in $ALPOPTIONS"
+		return 0
+	fi
+	debuge "$1 not in $ALPOPTIONS"
+	return 1
+}
+
+function get_all_terms {
+	declare -a ALPTERMS
+	debuge processing "$*" into "$ALPTERMS"
+	export ALPTERMS
+
+	for term in "$@"
+	do
+		if [[ "$term" =~ $(echo "^-") ]]; then
+			debuge "Discard $term"
+			continue
+		fi
+
+		ALPTERMS="$ALPTERMS $term"
+	done
+
+	echo "$ALPTERMS"
+}
+#!/bin/bash
+
+# Identify the distro's package manager
+
+ALPPM=unknown
+
+for x in /usr/bin/{apt-get,dnf,yum,pacman,tazpkg}
+do
+	if [[ -f "$x" ]]; then
+		ALPPM="$(basename "$x")"
+		break
+	fi
+done
+
+set -eu
+
+get_main_action "$@"
+get_options_list "$@"
+ALPTERMS="$(get_all_terms "$@")"
+
+if [[ -z "${ALPACKAS+x}" ]]; then
+	ALPACKAS=
+fi
+
+cat <<EOF
+Package manager: $ALPPM
+
+Action: [$ALPACTION]
+Options: [$ALPOPTIONS]
+Terms:
+EOF
+
+if [[ -n "$ALPTERMS" ]]; then
+	for x in "$ALPTERMS"; do
+		echo "- $x"
+	done
+else
+	echo "< none >"
+fi
+
+if has_option clean ; then
+	infoe "Cleaning"
+fi

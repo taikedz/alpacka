@@ -51,7 +51,7 @@ function get_options_list {
 }
 
 function has_option {
-	if [[ ":$1:" =~ "$ALPOPTIONS" ]]; then
+	if [[ ":$ALPOPTIONS:" =~ "$1" ]]; then
 		debuge "$1 in $ALPOPTIONS"
 		return 0
 	fi
@@ -59,8 +59,9 @@ function has_option {
 	return 1
 }
 
-function get_all_terms {
-	ALPTERMS=
+function get_all_terms { # FIXME defining all terms as an array might be hard - damn bash
+	declare -a ALPTERMS
+	debuge processing "$*" into "$ALPTERMS"
 
 	for term in "$@"
 	do
@@ -69,8 +70,8 @@ function get_all_terms {
 			continue
 		fi
 
-		ALPTERMS=" $term"
+		ALPTERMS="$ALPTERMS $term"
 	done
 
-	#echo "$ALPTERMS"
+	echo "$ALPTERMS"
 }

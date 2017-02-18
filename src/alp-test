@@ -1,0 +1,35 @@
+#!/bin/bash
+
+#%include helpfile autohelp bashout
+
+#%include argumenting distropm
+
+set -eu
+
+get_main_action "$@"
+get_options_list "$@"
+ALPTERMS="$(get_all_terms "$@")"
+
+if [[ -z "${ALPACKAS+x}" ]]; then
+	ALPACKAS=
+fi
+
+cat <<EOF
+Package manager: $ALPPM
+
+Action: [$ALPACTION]
+Options: [$ALPOPTIONS]
+Terms:
+EOF
+
+if [[ -n "$ALPTERMS" ]]; then
+	for x in "$ALPTERMS"; do
+		echo "- $x"
+	done
+else
+	echo "< none >"
+fi
+
+if has_option clean ; then
+	infoe "Cleaning"
+fi
