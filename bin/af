@@ -192,9 +192,11 @@ elif [[ $ACTION = purge ]]; then
 
 elif [[ $ACTION = upgrade ]]; then
 	if [[ -n "$PACKAGELIST" ]] && [[ "$ASSUMEYN" != '-y' ]]; then
-		[[ $( areyousure "Upgrade the entire system and all packages, not just [$PACKAGELIST]?" ) != yes ]] && exit 1
+		sudo apt install $PACKAGELIST $ASSUMEYN
+	else
+		sudo apt upgrade $ASSUMEYN
 	fi
-	sudo apt upgrade $ASSUMEYN
+
 elif [[ $ACTION = uprelease ]]; then
 	which "do-release-upgrade" >/dev/null 2>&1 || "$0" --install update-manager-core $ASSUMEYN
 	sudo "do-release-upgrade" $ASSUMEYN
