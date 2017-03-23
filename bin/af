@@ -2,7 +2,7 @@
 
 set -uo pipefail
 
-ASSUMEYES=
+: ${ASSUMEYN=}
 PACKAGELIST=
 ACTION=
 CLEANUP=
@@ -15,10 +15,12 @@ if [[ $(uname -a | grep 'Ubuntu' -c) -lt 1 ]]; then
 	fi
 fi
 
+sname="$(basename $0)"
+
 function printhelp {
 	cat <<EOF
 
-$(basename $0) - the 'af' script
+$sname - the 'af' script
 
 This script is used on Ubuntu systems to perform common package management tasks.
 
@@ -28,7 +30,15 @@ The tool uses sudo to run actions that require root.
 
 Usage
 
-	$(basename $0) [ACTION] TERMS ... [OPTIONS]
+	$sname [ACTION] TERMS ... [OPTIONS]
+
+ACTION does not need to be specified at the start -- the last set action determines which action will be exectured. The following sequence of commands is thus valid
+
+	> $sname htop
+	> $sname htop -s
+	> $sname htop -s vim tmux -i
+
+In turn, the commands search for htop ; display information about htop ; and install htop and other packages. In the last command "-s" is ignored in favour of "-i", to avoid having to retype commands when dealing with a lot of packages.
 
 ACTIONS
 
@@ -55,12 +65,14 @@ ACTIONS
 
 OPTIONS
 
--y|--assume-yes
+-y|--yes|--assume-yes
 	Use the --assume-yes flag for operations which would normally prompt you.
 
--ny|--no-assume-yes
-	Do not use the --assume-yes flag. You will be prompted
-	Supercedes a previously set '-y' option.
+-n|--no|--assume-no
+	Use the --assume-no flag for operations which would normally prompt you.
+
+--do-not-assume
+	Do not assume yes or no.
 
 -u|--update
 	Run an update of package listings.
@@ -77,6 +89,19 @@ OPTIONS
 	Donot perform any autoclean or autoremove
 	Supercedes a previously set '-c' option.
 
+ENVIRONMENT VARIABLES
+
+ASSUMEYN
+	You can set this variable to either "-y" or "-n" to force the defaut behaviour
+	to be to assume yes or assume no, respectively.
+
+	This may be useful to have in an environment where you do not want APT's
+	behaviour of assuming you wanted to proceed even if you wanted to be prompted. [1]
+
+References:
+
+[1] http://unix.stackexchange.com/a/164494
+	"Force apt-get prompt yes/no" (not possible)
 EOF
 }
 
@@ -120,11 +145,14 @@ while [[ -n "$@" ]]; do
 	-f)
 		: # do nothing, used for forcing execution
 		;;
-	-y|--assume-yes)
-		ASSUMEYES=-y
+	-y|--yes|--assume-yes)
+		ASSUMEYN=-y
 		;;
-	-ny|--no-assume-yes)
-		ASSUMEYES=
+	-n|--no|--assume-no)
+		ASSUMEYN=-n
+		;;
+	--do-not-assume)
+		ASSUMEYN=
 		;;
 	-c|--cleanup)
 		CLEANUP=yes
@@ -154,19 +182,19 @@ fi
 
 
 if [[ $ACTION = install ]]; then
-	[[ -n "$PACKAGELIST" ]] && sudo apt install $PACKAGELIST $ASSUMEYES
+	[[ -n "$PACKAGELIST" ]] && sudo apt install $PACKAGELIST $ASSUMEYN
 elif [[ $ACTION = remove ]]; then
-	[[ -n "$PACKAGELIST" ]] && sudo apt remove $PACKAGELIST $ASSUMEYES
+	[[ -n "$PACKAGELIST" ]] && sudo apt remove $PACKAGELIST $ASSUMEYN
 elif [[ $ACTION = purge ]]; then
-	[[ -n "$PACKAGELIST" ]] && sudo apt-get purge $PACKAGELIST $ASSUMEYES
+	[[ -n "$PACKAGELIST" ]] && sudo apt-get purge $PACKAGELIST $ASSUMEYN
 elif [[ $ACTION = upgrade ]]; then
-	if [[ -n "$PACKAGELIST" ]] && [[ "$ASSUMEYES" != '-y' ]]; then
+	if [[ -n "$PACKAGELIST" ]] && [[ "$ASSUMEYN" != '-y' ]]; then
 		[[ $( areyousure "Upgrade the entire system and all packages, not just [$PACKAGELIST]?" ) != yes ]] && exit 1
 	fi
-	sudo apt upgrade $ASSUMEYES
+	sudo apt upgrade $ASSUMEYN
 elif [[ $ACTION = uprelease ]]; then
-	which "do-release-upgrade" >/dev/null 2>&1 || "$0" --install update-manager-core $ASSUMEYES
-	sudo "do-release-upgrade" $ASSUMEYES
+	which "do-release-upgrade" >/dev/null 2>&1 || "$0" --install update-manager-core $ASSUMEYN
+	sudo "do-release-upgrade" $ASSUMEYN
 elif [[ $ACTION = list ]]; then
 	dpkg -l | less
 elif [[ $ACTION = show ]]; then
@@ -176,6 +204,6 @@ elif [[ -z "$ACTION" ]]; then
 fi
 
 if [[ $CLEANUP = yes ]]; then
-	sudo apt-get autoremove $ASSUMEYES
-	sudo apt-get autoclean $ASSUMEYES
+	sudo apt-get autoremove $ASSUMEYN
+	sudo apt-get autoclean $ASSUMEYN
 fi
