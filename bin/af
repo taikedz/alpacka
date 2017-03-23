@@ -22,9 +22,7 @@ function printhelp {
 
 $sname - the 'af' script
 
-This script is used on Ubuntu systems to perform common package management tasks.
-
-If your distribution is derived from Ubuntu but this script does not want to run, use the '-f' option to force execution.
+A wrapper for \`apt\` to manage packages more lazily (from a typing perspective!)
 
 The tool uses sudo to run actions that require root.
 
@@ -142,9 +140,6 @@ while [[ -n "$@" ]]; do
 		ACTION=uprelease
 		;;
 # MODES
-	-f)
-		: # do nothing, used for forcing execution
-		;;
 	-y|--yes|--assume-yes)
 		ASSUMEYN=-y
 		;;
