@@ -8,9 +8,9 @@ ACTION=
 CLEANUP=
 UPDATE=
 
-if [[ $(uname -a | grep 'Ubuntu' -c) -lt 1 ]]; then
+if ! which apt 2>/dev/null >/dev/null; then
 	if [[ ! "$@" =~ -r ]]; then
-		echo "This script only works on Ubuntu and its derivatives. Use the -f option if you want to force usage"
+		echo "Command 'apt' not found."
 		exit 1
 	fi
 fi
@@ -149,7 +149,7 @@ while [[ -n "$@" ]]; do
 		ASSUMEYN=-y
 		;;
 	-n|--no|--assume-no)
-		ASSUMEYN=-n
+		ASSUMEYN=--assume-no
 		;;
 	--do-not-assume)
 		ASSUMEYN=
