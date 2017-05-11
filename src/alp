@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#%include helpfile autohelp bashout
+#%include helpfile.sh autohelp.sh bashout.sh
 
-#%include argumenting cleaning
+#%include argumenting.sh cleaning.sh
 
 set -u
 

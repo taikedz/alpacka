@@ -4,7 +4,7 @@
 
 ALPPM=unknown
 
-for x in /usr/bin/{apt-get,dnf,yum,pacman,tazpkg}
+for x in /usr/bin/{apt-get,dnf,yum,pacman,tazpkg,zypper}
 do
 	if [[ -f "$x" ]]; then
 		ALPPM="$(basename "$x")"
