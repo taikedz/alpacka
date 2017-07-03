@@ -5,6 +5,8 @@ echo "You are not root"
 exit 1
 }
 
+cd "$(dirname "$0")"
+
 if [[ "$@" =~ xkcd ]]; then
 	bin/install.xkcd --help
 	read -p "Are you sure?  y/N> "
@@ -20,12 +22,15 @@ which "$1" >/dev/null 2>&1
 }
 
 
-if ishere apt; then
+if ishere apt-get; then
 	cp bin/af /usr/local/bin/paf
+
 elif ishere yum; then
 	cp bin/yf /usr/local/bin/paf
+
 elif ishere tazpkg; then
 	cp bin/tf /usr/local/bin/paf
+
 else
 	echo "Unsupported package management system. Try xkcd instead?"
 	exit 2
