@@ -1,8 +1,10 @@
 #!/bin/bash
 
+cd "$(dirname "$0")"
+
 [[ $UID -gt 0 ]] && {
-echo "You are not root"
-exit 1
+	echo "You are not root"
+	exit 1
 }
 
 if [[ "$@" =~ xkcd ]]; then
@@ -22,8 +24,10 @@ which "$1" >/dev/null 2>&1
 
 if ishere apt; then
 	cp bin/af /usr/local/bin/paf
+
 elif ishere yum; then
 	cp bin/yf /usr/local/bin/paf
+
 elif ishere tazpkg; then
 	cp bin/tf /usr/local/bin/paf
 else
