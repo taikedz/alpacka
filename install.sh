@@ -22,7 +22,7 @@ which "$1" >/dev/null 2>&1
 }
 
 
-if ishere apt; then
+if ishere apt-get; then
 	cp bin/af /usr/local/bin/paf
 
 elif ishere yum; then
