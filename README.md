@@ -4,6 +4,13 @@ Wrappers for package managers
 
 (C) Tai Kedzierski 2016, licensed under the GNU General Public License v3
 
+## Install
+
+	git clone https://github.com/taikedz/alpacka
+	sudo alpacka/install.sh
+
+And you're done.
+
 # What is it?
 
 The `alpacka` scripts are wrappers around popular package management commands (e.g. `apt`, `yum`, `tazpkg`) allowing you to issue similar commands on any supported system.
@@ -14,10 +21,6 @@ It installs to `/usr/local/bin` as the `paf` command (historical naming reasons 
 
 Because I am too lazy to remember which command has what option names; and in some cases to get over some limitations of the package manager itself.
 
-## Ubuntu support, and Debian
-
-My wrapper wraps around the `apt` command, which offers some nice features regarding output display (the only reason, really). I'll get round to elegantly adding "apt-get" usage instead soon.
-
 # `pafs`
 
 The `pafs` tool is a search-only tool that will search over every and any package manager you happen to have installed.
@@ -26,7 +29,7 @@ It will then display all the results in a `less` session, or you can dump to std
 
 You will need to use the appropriate package manager to perform the installation.
 
-Supported package managers include:
+Supported package managers for the `pafs` search utility include:
 
 * apt
 * dnf, yum
@@ -34,5 +37,6 @@ Supported package managers include:
 * zypper
 * tazpkg
 * pip
+* cpan
 * ruby gem
 * more to come...

@@ -7,6 +7,8 @@ cd "$(dirname "$0")"
 	exit 1
 }
 
+cd "$(dirname "$0")"
+
 if [[ "$@" =~ xkcd ]]; then
 	bin/install.xkcd --help
 	read -p "Are you sure?  y/N> "
@@ -30,6 +32,7 @@ elif ishere yum; then
 
 elif ishere tazpkg; then
 	cp bin/tf /usr/local/bin/paf
+
 else
 	echo "Unsupported package management system. Try xkcd instead?"
 	exit 2
