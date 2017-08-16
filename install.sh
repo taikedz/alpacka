@@ -5,7 +5,10 @@ echo "You are not root"
 exit 1
 }
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" || {
+	echo "Please switch to the alpacka directory"
+	exit 1
+}
 
 if [[ "$@" =~ xkcd ]]; then
 	bin/install.xkcd --help
