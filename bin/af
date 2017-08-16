@@ -22,7 +22,7 @@ function printhelp {
 
 $sname - the 'af' script
 
-A wrapper for \`apt-get\` to manage packages more lazily (from a typing perspective!)
+A wrapper for \`apt-get\` and \`apt-cache\` to manage packages more lazily (from a typing perspective!)
 
 The tool uses sudo to run actions that require root.
 
@@ -180,19 +180,19 @@ fi
 
 
 if [[ $ACTION = install ]]; then
-	[[ -n "$PACKAGELIST" ]] && sudo apt-get install $PACKAGELIST $ASSUMEYN
+	[[ -n "$PACKAGELIST" ]] && sudo apt-get install --show-progress $PACKAGELIST $ASSUMEYN
 
 elif [[ $ACTION = remove ]]; then
-	[[ -n "$PACKAGELIST" ]] && sudo apt-get remove $PACKAGELIST $ASSUMEYN
+	[[ -n "$PACKAGELIST" ]] && sudo apt-get remove --show-progress $PACKAGELIST $ASSUMEYN
 
 elif [[ $ACTION = purge ]]; then
 	[[ -n "$PACKAGELIST" ]] && sudo apt-get purge $PACKAGELIST $ASSUMEYN
 
 elif [[ $ACTION = upgrade ]]; then
 	if [[ -n "$PACKAGELIST" ]] && [[ "$ASSUMEYN" != '-y' ]]; then
-		sudo apt-get install $PACKAGELIST $ASSUMEYN
+		sudo apt-get install --show-progress $PACKAGELIST $ASSUMEYN
 	else
-		sudo apt-get upgrade $ASSUMEYN
+		sudo apt-get dist-upgrade --show-progress $ASSUMEYN
 	fi
 
 elif [[ $ACTION = dist-upgrade ]]; then

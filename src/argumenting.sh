@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#%include argstore bashout
+#%include argstore.sh bashout.sh
 
 allargs="$(args_store "$@")"
 

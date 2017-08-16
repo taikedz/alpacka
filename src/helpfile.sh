@@ -18,10 +18,11 @@
 # Where multiple terms are specified, results returned
 # depend on how the package manager handles this:
 #
-# 	apt : looks for all terms in the name and description
+# 	apt-get : looks for all terms in the name and description
 # 	yum/dnf : looks for all terms in the name and description
-# 	tazpkg : search for the first term, and filter on the remainder
-# 	pacman : (tbd)
+# 	tazpkg  : search for the first term, and filter on the remainder
+# 	pacman  : (tbd)
+# 	zypper  : (tbd)
 #
 #
 # Standard commands

@@ -1,8 +1,10 @@
 #!/bin/bash
 
+cd "$(dirname "$0")"
+
 [[ $UID -gt 0 ]] && {
-echo "You are not root"
-exit 1
+	echo "You are not root"
+	exit 1
 }
 
 cd "$(dirname "$0")" || {
