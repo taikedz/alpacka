@@ -136,6 +136,9 @@ while [[ -n "$@" ]]; do
 	-g|--upgrade)
 		ACTION=upgrade
 		;;
+	-gg|--dist-upgrade)
+		ACTION=dist-upgrade
+		;;
 	-R|--release-upgrade)
 		ACTION=uprelease
 		;;
@@ -191,6 +194,9 @@ elif [[ $ACTION = upgrade ]]; then
 	else
 		sudo apt-get upgrade $ASSUMEYN
 	fi
+
+elif [[ $ACTION = dist-upgrade ]]; then
+	sudo apt-get dist-upgrade $ASSUMEYN
 
 elif [[ $ACTION = uprelease ]]; then
 	which "do-release-upgrade" >/dev/null 2>&1 || "$0" --install update-manager-core $ASSUMEYN
