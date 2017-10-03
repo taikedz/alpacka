@@ -1,7 +1,5 @@
 #!/bin/bash
 
-cd "$(dirname "$0")"
-
 [[ $UID -gt 0 ]] && {
 	echo "You are not root"
 	exit 1
@@ -15,7 +13,7 @@ cd "$(dirname "$0")" || {
 if [[ "$@" =~ xkcd ]]; then
 	bin/install.xkcd --help
 	read -p "Are you sure?  y/N> "
-	[[ $REPLY = 't' ]] && {
+	[[ $REPLY = 'y' ]] && {
 		cp bin/install.xkcd /usr/local/bin/
 		echo "The 'install.xkcd' command is now available. You masochist."
 	}
