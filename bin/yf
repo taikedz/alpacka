@@ -65,6 +65,14 @@ OPTIONS
 	Donot perform any autoclean or autoremove
 	Supercedes a previously set '-c' option.
 
+ACTION WARNINGS
+
+You can place a warning file name 'warn-\$WARNINGNAME' for certain actions in /etc/alpacka to display a warning before running a given action.
+
+Supported warning names are: install, remove, upgrade, cleanup
+
+For example, to print a warning before an upgrade is run, add a file called '/etc/alpacka/warn-upgrade' containing the warning message to display.
+
 EOF
 }
 
@@ -77,6 +85,17 @@ function areyousure {
 	else
 		echo "no"
 	fi
+}
+
+function printwarning {
+	local warningfile="/etc/alpacka/warn-$1"; shift
+
+	if [[ -f "$warningfile" ]]; then
+		echo -n -e "\033[33;1m"
+		cat "$warningfile"
+		echo -n -e "\0330m"
+	fi
+	sleep 2
 }
 
 while [[ -n "$@" ]]; do
@@ -123,13 +142,19 @@ done
 
 
 if [[ $ACTION = install ]]; then
+	printwarning install
+
 	[[ -n "$PACKAGELIST" ]] && sudo yum install $PACKAGELIST $ASSUMEYES
 elif [[ $ACTION = remove ]]; then
+	printwarning remove
+
 	[[ -n "$PACKAGELIST" ]] && sudo yum remove $PACKAGELIST $ASSUMEYES
 elif [[ $ACTION = purge ]]; then
 	echo "Not supported."
 	exit 1
 elif [[ $ACTION = upgrade ]]; then
+	printwarning upgrade
+
 	sudo yum update $PACKAGELIST $ASSUMEYES
 elif [[ $ACTION = uprelease ]]; then
 	echo "Not supported."
@@ -143,5 +168,6 @@ elif [[ -z "$ACTION" ]]; then
 fi
 
 if [[ $CLEANUP = yes ]]; then
+	printwarning cleanup
 	sudo yum clean $ASSUMEYES
 fi

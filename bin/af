@@ -87,6 +87,14 @@ OPTIONS
 	Donot perform any autoclean or autoremove
 	Supercedes a previously set '-c' option.
 
+ACTION WARNINGS
+
+You can place a warning file name 'warn-\$WARNINGNAME' for certain actions in /etc/alpacka to display a warning before running a given action.
+
+Supported warning names are: install, remove, upgrade,  purge, cleanup
+
+For example, to print a warning before an upgrade is run, add a file called '/etc/alpacka/warn-upgrade' containing the warning message to display.
+
 ENVIRONMENT VARIABLES
 
 ASSUMEYN
@@ -112,6 +120,17 @@ function areyousure {
 	else
 		echo "no"
 	fi
+}
+
+function printwarning {
+	local warningfile="/etc/alpacka/warn-$1"; shift
+
+	if [[ -f "$warningfile" ]]; then
+		echo -n -e "\033[33;1m"
+		cat "$warningfile"
+		echo -n -e "\0330m"
+	fi
+	sleep 2
 }
 
 while [[ -n "$@" ]]; do
@@ -180,15 +199,23 @@ fi
 
 
 if [[ $ACTION = install ]]; then
+	printwarning install
+
 	[[ -n "$PACKAGELIST" ]] && sudo apt-get install --show-progress $PACKAGELIST $ASSUMEYN
 
 elif [[ $ACTION = remove ]]; then
+	printwarning remove
+
 	[[ -n "$PACKAGELIST" ]] && sudo apt-get remove --show-progress $PACKAGELIST $ASSUMEYN
 
 elif [[ $ACTION = purge ]]; then
+	printwarning purge
+
 	[[ -n "$PACKAGELIST" ]] && sudo apt-get purge $PACKAGELIST $ASSUMEYN
 
 elif [[ $ACTION = upgrade ]]; then
+	printwarning upgrade
+
 	if [[ -n "$PACKAGELIST" ]] && [[ "$ASSUMEYN" != '-y' ]]; then
 		sudo apt-get install --show-progress $PACKAGELIST $ASSUMEYN
 	else
@@ -196,9 +223,13 @@ elif [[ $ACTION = upgrade ]]; then
 	fi
 
 elif [[ $ACTION = dist-upgrade ]]; then
+	printwarning upgrade
+
 	sudo apt-get dist-upgrade $ASSUMEYN
 
 elif [[ $ACTION = uprelease ]]; then
+	printwarning releaseupgrade
+
 	which "do-release-upgrade" >/dev/null 2>&1 || "$0" --install update-manager-core $ASSUMEYN
 	sudo "do-release-upgrade" $ASSUMEYN
 
@@ -214,6 +245,8 @@ elif [[ -z "$ACTION" ]]; then
 fi
 
 if [[ $CLEANUP = yes ]]; then
+	printwarning cleanup
+
 	sudo apt-get autoremove $ASSUMEYN
 	sudo apt-get autoclean $ASSUMEYN
 fi
