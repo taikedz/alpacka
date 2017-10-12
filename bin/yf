@@ -93,7 +93,7 @@ function printwarning {
 	if [[ -f "$warningfile" ]]; then
 		echo -n -e "\033[33;1m"
 		cat "$warningfile"
-		echo -n -e "\0330m"
+		echo -n -e "\033[0m"
 	fi
 	sleep 2
 }
