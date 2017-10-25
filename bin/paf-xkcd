@@ -84,7 +84,7 @@ function snafun {
 
 	wehaz "$thecommand" || return
 
-	"$thecommand" "$@" 2>&1 | tee -a "~/logs/${thecommand}.log" | tee -a "~/logs/global.log"
+	"$thecommand" "$@" 2>&1 | tee -a "$HOME/logs/${thecommand}.log" | tee -a "$HOME/logs/global.log"
 
 	if [[ "$?" -lt 1 ]]; then exit; fi
 }
