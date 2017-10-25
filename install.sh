@@ -11,7 +11,7 @@ cd "$(dirname "$0")" || {
 }
 
 if [[ "$@" =~ xkcd ]]; then
-	bin/paf-xkcd --help
+	bash bin/paf-xkcd --help
 	read -p "Are you sure?  y/N> "
 	[[ $REPLY = 'y' ]] && {
 		cp bin/paf-xkcd /usr/local/bin/pafx
@@ -22,7 +22,7 @@ if [[ "$@" =~ xkcd ]]; then
 fi
 
 function ishere {
-which "$1" >/dev/null 2>&1
+	which "$1" >/dev/null 2>&1
 }
 
 
