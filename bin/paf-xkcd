@@ -94,6 +94,7 @@ function snafun {
 
 [[ $UID -ne 0 ]] && snafun pip install "$1" --user
 snafun brew install "$1"
+snafun pip install "$1"
 
 if [[ "$UID" -gt 0 ]]; then
 	echo "[1;33mYou are not root. I trust you are not in production?[0m"
