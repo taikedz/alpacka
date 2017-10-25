@@ -11,11 +11,12 @@ cd "$(dirname "$0")" || {
 }
 
 if [[ "$@" =~ xkcd ]]; then
-	bin/install.xkcd --help
+	bin/paf-xkcd --help
 	read -p "Are you sure?  y/N> "
 	[[ $REPLY = 'y' ]] && {
-		cp bin/install.xkcd /usr/local/bin/
-		echo "The 'install.xkcd' command is now available. You masochist."
+		cp bin/paf-xkcd /usr/local/bin/pafx
+		chmod 755 /usr/local/bin/pafx
+		echo "The 'pafx' command is now available. You masochist."
 	}
 	exit
 fi
