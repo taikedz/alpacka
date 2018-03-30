@@ -1,0 +1,168 @@
+#!/bin/bash 
+
+set -u
+
+### xkcd Universal Installer Usage:help
+#
+# A modified version of the xkcd Universal Installer
+# 
+# 	Do not use in production
+# 
+# Tries a plethora of installers to get the package you want.
+# 
+# 	Inspired by https://xkcd.com/1654/
+# 
+# 	Do not use in production
+# 
+# If run without root privileges, this script will try to use pip in user mode, then try homebrew
+# 
+# If you run it with root permissions, OS package managers will be attempted, then secondary package managers like pip, npm, gem, etc
+# 
+# Finally, we'll attempt to download a git repo, then a script directly.
+# 
+# 	Do not run in production
+# 
+# The logs are kept in ~/logs
+# 
+# 	Do not u...
+# 	... you're a responsible person I hope.
+#
+###/doc
+
+#%include autohelp.sh
+
+autohelp:check "$@"
+
+mkdir -p ~/logs/
+
+
+function localinstall {
+	if [[ -d "$1" ]]; then
+		cd "$1"
+		if [[ -f configure ]] && [[ -f Makefile ]]; then
+			snafun configure-script
+
+		elif [[ -f setup ]]; then
+			snafun ./setup
+
+		elif [[ -f setup.sh ]]; then
+			snafun ./setup.sh
+
+		elif [[ -f install ]]; then
+			snafun ./install
+
+		elif [[ -f install.sh ]]; then
+			snafun ./install.sh
+
+		elif [[ -f config.json ]] || [[ -f "$1/config.json" ]]; then
+			snafun composer "$1"
+		fi
+		cd -
+	fi
+}
+
+function composer {
+	[[ ! -f config.json ]] &&  cd "$1"
+	php composer.phar install
+}
+
+function configure-script {
+	make clean
+	./configure
+	make
+	make install
+}
+
+function wehaz { which "$1" 2>&1 >/dev/null ; }
+
+function snafun {
+	local thecommand="$1" ; shift
+
+	wehaz "$thecommand" || return
+
+	"$thecommand" "$@" 2>&1 | tee -a "$HOME/logs/${thecommand}.log" | tee -a "$HOME/logs/global.log"
+
+	if [[ "$?" -lt 1 ]]; then exit; fi
+}
+
+
+# Try without root access
+
+[[ $UID -ne 0 ]] && snafun pip install "$1" --user
+snafun brew install "$1"
+snafun pip install "$1"
+
+if [[ "$UID" -gt 0 ]]; then
+	echo "[1;33mYou are not root. I trust you are not in production?[0m"
+	exit 1
+fi
+
+echo -e "[1;31m=============\nYou are on your own now.\n\n[0m"
+sleep 1
+
+# Local package?
+
+if [[ -f "$1" ]]; then
+	snafun dpkg -i "$1"
+	snafun rpm -i "$1"
+	snafun tazpkg -i "$1"
+fi
+
+# Maybe it's in a local directory?
+snafun localinstall "$1"
+
+# Try the system package managers
+snafun dnf install "$1"          # Fedora, RedHat 7+
+snafun yum install "$1"          # All other RPM systems with yum
+snafun snap install "$1"         # Ubuntu specific package manager
+snafun apt-get install "$1"      # Debian family, incl Ubuntu
+snafun pacman -Syu "$1"          # Arch standard
+snafun yaourt -Syu "$1" --aur    # More arch, with AUR support
+snafun zypper install "$1"       # OpenSUSE
+snafun emerge "$1"               # Gentoo
+snafun tazpkg -gi "$1"           # SliTaz
+snafun pkg install "$1"          # FreeBSD
+
+# Try language specific package managers
+snafun npm install "$1"          # Server-side JavaScript
+snafun pear install "$1"         # PHP
+snafun cpanm "$1"                # Perl
+snafun pip install "$1"          # Python 2
+snafun pip3 install "$1"         # Python 3
+snafun easy_install "$1"         # Legacy python
+snafun gem install "$1"          # Ruby
+
+# Try image distribution networks
+snafun docker run "$1"
+snafun vagrant up "$1"
+snafun steamcmd "+app_update" "$1" validate
+
+# That dangerous thing that shouldn't be done
+function webresource {
+	remotescript=/tmp/curl_"$(echo "$1"|sed -r 's/[^a-zA-Z0-9._-]+/_/g')"
+	# TODO detect deb or  rpm
+	curl "$1" > "$remotescript" && cat "$remotescript" | bash 2>&1 |tee -a ~/logs/curl.log
+
+	exit
+}
+
+urlpat="^[a-z]+://"
+[[ "$1" =~ $urlpat ]] && webresource "$1"
+
+# Find some random github repo. First match will do
+
+function searchweb {
+	local QUERY="$1" ; shift
+	local PATTERN="$1" ; shift
+	elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=$QUERY" | grep -P "$PATTERN" -o|head -n 1
+}
+
+if wehaz elinks; then
+	giturl="$(searchweb "$1" "https://github.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9._-]+")"
+
+	[[ -n "$giturl" ]] && git clone "$giturl" 2>&1 >/dev/null && snafun localinstall "$1"
+fi
+
+# and if even that failed
+
+echo "[1;31m..... could not find '$1', and BELIEVE ME -- I tried. [0m"

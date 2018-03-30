@@ -1,0 +1,162 @@
+#!/bin/bash
+
+set -euo pipefail
+
+### PAF installer Usage:help
+# 
+# The `paf` command is a shorthand to allow use of a single command across distros.
+#
+# Run `paf` and let it determine whether to invoke apt-get, dnf or yum.
+#
+# ### ACTIVITIES AND OPTIONS
+#
+# Some package managers support independent activites to run before and after main actions.
+#
+# 	-u
+# 		update the package database
+#
+# 	-c
+# 		clean up interim packages and cache
+#
+# 	-y
+# 		assume yes
+#
+# ### ACTIONS
+#
+# Only one action can be run at a time. The last one specified will be run. For example
+#
+#   paf -s htop
+#
+# would show info for htop, whereas
+#
+#   paf -s htop -i
+#
+# would install it.
+#
+#
+#
+# Search for keywords:
+#
+#	paf KEYWORDS ...
+#
+# Show info on each package
+#
+#	paf -s PACKAGES ...
+#
+# Install
+#
+#	paf -i PACKAGES ...
+#
+# Remove
+# 	
+# 	paf -r PACKAGES ...
+#
+# Upgrade
+#
+# 	paf -g
+#
+# List installed packages
+#
+# 	paf -l
+#
+#
+#
+# ### EXAMPLE
+#
+# The following updates the package database and installs Apache and PHP, assuming `yes`
+#
+# 	paf -u -i apache2 php libapache2-mod-php -y
+#
+# The following updates the package database, runs an upgrade, and cleans up afterwards. Since `-y` is not specified, the user will be prompted.
+#
+# 	paf -u -g -y -c
+#
+#Supported package managers
+#
+# Currently, APT, yum, dnf and tazpkg are supported. Intended extra package managers include zypper, pacman.
+#
+# See also the `pafs` universal package searcher.
+#
+###/doc
+
+#%include autohelp.sh bincheck.sh args.sh runmain.sh out.sh
+
+PAF_activities=(:)
+PAF_packages=(:)
+PAF_sources=(:)
+PAF_action=search
+PAF_assume=
+
+PAF_pm="" # general package manager e.g. apt
+PAF_bpm="" # base package manager e.g. dpkg
+
+paf:get_package_manager() {
+	local drivers=(apt-get:dpkg dnf:rpm yum:rpm ) # zypper pacman tazpkg)
+	local drive
+
+	for drive in "${drivers[@]}"; do
+		bincheck:has "${drive%:*}" || continue
+		PAF_pm="${drive%:*}"
+		PAF_bpm="${drive#*:}"
+		return
+	done
+
+	out:fail "You distro is unsupported"
+}
+
+paf:add_activity() {
+	PAF_activities[${#PAF_activities[@]}]="$1"
+}
+
+paf:run_activity() {
+	local activity="$1"
+	if [[ "${PAF_activities[*]:-}" =~ "$activity" ]]; then
+		"$PAF_pm:$activity"
+	fi
+}
+
+paf:parse_arguments() {
+	for arg in "$@"; do
+		case "$arg" in
+		-u)	paf:add_activity "update" ;;
+		-c)	paf:add_activity "clean" ;;
+
+		-g*)	PAF_action="upgrade" ;;
+		-i*)	PAF_action="install" ;;
+		-r*)	PAF_action="remove" ;;
+		-l*)	PAF_action="list" ;;
+		-s*)	PAF_action="show" ;;
+
+		-y)	PAF_assume="yes" ;;
+		-n)	PAF_assume="no" ;;
+
+		*)	PAF_packages[${#PAF_packages[@]}]="$arg" ;;
+		esac
+	done
+
+	# blat the holders
+	PAF_activities=("${PAF_activities[@]:1}")
+	PAF_packages=("${PAF_packages[@]:1}")
+}
+
+paf:main() {
+	autohelp:check "$@"
+	if [[ -z "$*" ]]; then
+		out:warn "Nothing to do. Try --help ."
+		exit 0
+	fi
+
+	paf:get_package_manager
+	paf:parse_arguments "$@"
+
+	paf:run_activity update
+
+	"$PAF_pm:$PAF_action" "$@"
+
+	paf:run_activity clean
+}
+
+#%include apt.sh dnf.sh tazpkg.sh
+# zypper.sh pacman.sh emerge.sh
+
+runmain paf paf:main "$@"

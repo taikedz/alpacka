@@ -2,7 +2,7 @@
 
 Wrappers for package managers
 
-(C) Tai Kedzierski 2016, licensed under the GNU General Public License v3
+(C) Tai Kedzierski 2016-2018, licensed under the GNU General Public License v3
 
 ## Install
 
@@ -10,6 +10,10 @@ Wrappers for package managers
 	sudo alpacka/install.sh
 
 And you're done.
+
+### Dependecies
+
+You probably already have these, unless you're running in some pared-down environment - in which case, ensure the following are installed: `less`, `which`, `grep`, `sudo`, `bash`
 
 # What is it?
 

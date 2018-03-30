@@ -1,1 +1,2 @@
 BUILDOUTD=./bin
+BBFILES=(src/paf src/pafs src/pafx)
