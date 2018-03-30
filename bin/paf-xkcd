@@ -118,6 +118,7 @@ snafun localinstall "$1"
 # Try the system package managers
 snafun dnf install "$1"          # Fedora, RedHat 7+
 snafun yum install "$1"          # All other RPM systems with yum
+snafun snap install "$1"         # Ubuntu specific package manager
 snafun apt-get install "$1"      # Debian family, incl Ubuntu
 snafun pacman -Syu "$1"          # Arch standard
 snafun yaourt -Syu "$1" --aur    # More arch, with AUR support
