@@ -17,9 +17,24 @@ You probably already have these, unless you're running in some pared-down enviro
 
 # What is it?
 
-The `alpacka` scripts are wrappers around popular package management commands (e.g. `apt`, `yum`, `tazpkg`) allowing you to issue similar commands on any supported system.
+The `alpacka` scripts are wrappers around popular package management commands (e.g. `apt`, `yum`, `dnf`, etc) allowing you to issue similar commands on any supported system.
 
 It installs to `/usr/local/bin` as the `paf` command (historical naming reasons lost...) and you just use it in the generally the same way on any of Ubuntu, Fedora, CentOS and SliTaz
+
+For example to install the `htop` and `tmux` commands on Fedora, run
+
+	paf -i htop tmux
+
+To install them on Debian, run
+
+	paf -i htop tmux
+
+To install them on Slitaz, run
+
+	paf -i htop tmux
+
+;-)
+
 
 ## Why?
 

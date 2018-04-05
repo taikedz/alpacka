@@ -4,13 +4,13 @@ set -euo pipefail
 
 ### PAF installer Usage:help
 # 
-# The `paf` command is a shorthand to allow use of a single command across distros.
+#The `paf` command is a shorthand to allow use of a single command across distros.
 #
-# Run `paf` and let it determine whether to invoke apt-get, dnf or yum.
+#Run `paf` and let it determine whether to invoke apt-get, dnf or yum.
 #
-# ### ACTIVITIES AND OPTIONS
+#### ACTIVITIES AND OPTIONS
 #
-# Some package managers support independent activites to run before and after main actions.
+#Some package managers support independent activites to run before and after main actions.
 #
 # 	-u
 # 		update the package database
@@ -21,9 +21,9 @@ set -euo pipefail
 # 	-y
 # 		assume yes
 #
-# ### ACTIONS
+#### ACTIONS
 #
-# Only one action can be run at a time. The last one specified will be run. For example
+#Only one action can be run at a time. The last one specified will be run. For example
 #
 #   paf -s htop
 #
@@ -35,7 +35,7 @@ set -euo pipefail
 #
 #
 #
-# Search for keywords:
+#Search for keywords:
 #
 #	paf KEYWORDS ...
 #
@@ -43,33 +43,37 @@ set -euo pipefail
 #
 #	paf -s PACKAGES ...
 #
-# Install
+#Install
 #
 #	paf -i PACKAGES ...
 #
-# Remove
+#Remove
 # 	
 # 	paf -r PACKAGES ...
 #
-# Upgrade
+#Upgrade
 #
 # 	paf -g
 #
-# List installed packages
+#List installed packages
 #
 # 	paf -l
 #
 #
 #
-# ### EXAMPLE
+#### EXAMPLE
 #
-# The following updates the package database and installs Apache and PHP, assuming `yes`
+#The following updates the package database and installs Apache and PHP, assuming `yes`
 #
-# 	paf -u -i apache2 php libapache2-mod-php -y
+#	paf -u -i apache2 php libapache2-mod-php -y
 #
-# The following updates the package database, runs an upgrade, and cleans up afterwards. Since `-y` is not specified, the user will be prompted.
+#The following updates the package database, runs an upgrade, and cleans up afterwards. Since `-y` is not specified, the user will be prompted.
 #
-# 	paf -u -g -y -c
+# 	paf -u -g -c
+#
+# (In Debian, the equivalent command would be:
+#
+# 	sudo apt-get update && sudo apt-get upgrade && sudo apt-get autoclean && sudo apt-get autoremove)
 #
 #Supported package managers
 #
@@ -685,17 +689,36 @@ if [[ "$MODE_DEBUG_VERBOSE" = true ]]; then
 	set -x
 fi
 
-PAF_activities=(:)
-PAF_packages=(:)
-PAF_sources=(:)
-PAF_action=search
-PAF_assume=
+paf:main() {
+	PAF_activities=(:)
+	PAF_packages=(:)
+	PAF_sources=(:)
+	PAF_action=search
+	PAF_assume=
 
-PAF_pm="" # general package manager e.g. apt
-PAF_bpm="" # base package manager e.g. dpkg
+	PAF_pm="" # general package manager e.g. apt
+	PAF_bpm="" # base package manager e.g. dpkg
+
+	autohelp:check "$@"
+	if [[ -z "$*" ]]; then
+		out:warn "Nothing to do. Try --help ."
+		exit 0
+	fi
+
+	paf:get_package_manager
+	paf:parse_arguments "$@"
+
+	paf:run_activity update
+
+	if [[ -n "${PAF_action:-}" ]]; then
+		"$PAF_pm:$PAF_action" "$@"
+	fi
+
+	paf:run_activity clean
+}
 
 paf:get_package_manager() {
-	local drivers=(apt-get:dpkg dnf:rpm yum:rpm ) # zypper pacman tazpkg)
+	local drivers=(apt-get:dpkg dnf:rpm yum:rpm apk: ) # zypper pacman tazpkg)
 	local drive
 
 	for drive in "${drivers[@]}"; do
@@ -744,25 +767,6 @@ paf:parse_arguments() {
 	# blat the holders
 	PAF_activities=("${PAF_activities[@]:1}")
 	PAF_packages=("${PAF_packages[@]:1}")
-}
-
-paf:main() {
-	autohelp:check "$@"
-	if [[ -z "$*" ]]; then
-		out:warn "Nothing to do. Try --help ."
-		exit 0
-	fi
-
-	paf:get_package_manager
-	paf:parse_arguments "$@"
-
-	paf:run_activity update
-
-	if [[ -n "${PAF_action:-}" ]]; then
-		"$PAF_pm:$PAF_action" "$@"
-	fi
-
-	paf:run_activity clean
 }
 
 apt-get:assume() {
@@ -933,6 +937,41 @@ tazpkg:search() {
 		tazpkg:search:and "${PAF_packages[@]:-}" | less
 	fi
 }
-# zypper.sh pacman.sh emerge.sh
+apk:update() {
+	sudo apk update
+}
+
+apk:clean() {
+	sudo apk clean
+}
+
+apk:install() {
+	sudo apk add "${PAF_packages[@]:-}"
+}
+
+apk:remove() {
+	sudo apk del "${PAF_packages[@]:-}"
+}
+
+apk:list() {
+	apk info -vv |sort| less || return 0
+}
+
+apk:show() {
+	local package
+
+	for package in "${PAF_packages[@]:-}"; do
+		apk info "$package" | less
+	done
+}
+
+apk:upgrade() {
+	sudo apk upgrade
+}
+
+apk:search() {
+	apk search "${PAF_packages[@]:-}" | less
+}
+# zypper.sh pacman.sh emerge.sh # To be implemented
 
 runmain paf paf:main "$@"

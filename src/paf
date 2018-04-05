@@ -4,13 +4,13 @@ set -euo pipefail
 
 ### PAF installer Usage:help
 # 
-# The `paf` command is a shorthand to allow use of a single command across distros.
+#The `paf` command is a shorthand to allow use of a single command across distros.
 #
-# Run `paf` and let it determine whether to invoke apt-get, dnf or yum.
+#Run `paf` and let it determine whether to invoke apt-get, dnf or yum.
 #
-# ### ACTIVITIES AND OPTIONS
+#### ACTIVITIES AND OPTIONS
 #
-# Some package managers support independent activites to run before and after main actions.
+#Some package managers support independent activites to run before and after main actions.
 #
 # 	-u
 # 		update the package database
@@ -21,9 +21,9 @@ set -euo pipefail
 # 	-y
 # 		assume yes
 #
-# ### ACTIONS
+#### ACTIONS
 #
-# Only one action can be run at a time. The last one specified will be run. For example
+#Only one action can be run at a time. The last one specified will be run. For example
 #
 #   paf -s htop
 #
@@ -35,7 +35,7 @@ set -euo pipefail
 #
 #
 #
-# Search for keywords:
+#Search for keywords:
 #
 #	paf KEYWORDS ...
 #
@@ -43,33 +43,37 @@ set -euo pipefail
 #
 #	paf -s PACKAGES ...
 #
-# Install
+#Install
 #
 #	paf -i PACKAGES ...
 #
-# Remove
+#Remove
 # 	
 # 	paf -r PACKAGES ...
 #
-# Upgrade
+#Upgrade
 #
 # 	paf -g
 #
-# List installed packages
+#List installed packages
 #
 # 	paf -l
 #
 #
 #
-# ### EXAMPLE
+#### EXAMPLE
 #
-# The following updates the package database and installs Apache and PHP, assuming `yes`
+#The following updates the package database and installs Apache and PHP, assuming `yes`
 #
-# 	paf -u -i apache2 php libapache2-mod-php -y
+#	paf -u -i apache2 php libapache2-mod-php -y
 #
-# The following updates the package database, runs an upgrade, and cleans up afterwards. Since `-y` is not specified, the user will be prompted.
+#The following updates the package database, runs an upgrade, and cleans up afterwards. Since `-y` is not specified, the user will be prompted.
 #
-# 	paf -u -g -y -c
+# 	paf -u -g -c
+#
+# (In Debian, the equivalent command would be:
+#
+# 	sudo apt-get update && sudo apt-get upgrade && sudo apt-get autoclean && sudo apt-get autoremove)
 #
 #Supported package managers
 #
@@ -81,17 +85,36 @@ set -euo pipefail
 
 #%include autohelp.sh bincheck.sh args.sh runmain.sh out.sh
 
-PAF_activities=(:)
-PAF_packages=(:)
-PAF_sources=(:)
-PAF_action=search
-PAF_assume=
+paf:main() {
+	PAF_activities=(:)
+	PAF_packages=(:)
+	PAF_sources=(:)
+	PAF_action=search
+	PAF_assume=
 
-PAF_pm="" # general package manager e.g. apt
-PAF_bpm="" # base package manager e.g. dpkg
+	PAF_pm="" # general package manager e.g. apt
+	PAF_bpm="" # base package manager e.g. dpkg
+
+	autohelp:check "$@"
+	if [[ -z "$*" ]]; then
+		out:warn "Nothing to do. Try --help ."
+		exit 0
+	fi
+
+	paf:get_package_manager
+	paf:parse_arguments "$@"
+
+	paf:run_activity update
+
+	if [[ -n "${PAF_action:-}" ]]; then
+		"$PAF_pm:$PAF_action" "$@"
+	fi
+
+	paf:run_activity clean
+}
 
 paf:get_package_manager() {
-	local drivers=(apt-get:dpkg dnf:rpm yum:rpm ) # zypper pacman tazpkg)
+	local drivers=(apt-get:dpkg dnf:rpm yum:rpm apk: ) # zypper pacman tazpkg)
 	local drive
 
 	for drive in "${drivers[@]}"; do
@@ -142,26 +165,7 @@ paf:parse_arguments() {
 	PAF_packages=("${PAF_packages[@]:1}")
 }
 
-paf:main() {
-	autohelp:check "$@"
-	if [[ -z "$*" ]]; then
-		out:warn "Nothing to do. Try --help ."
-		exit 0
-	fi
-
-	paf:get_package_manager
-	paf:parse_arguments "$@"
-
-	paf:run_activity update
-
-	if [[ -n "${PAF_action:-}" ]]; then
-		"$PAF_pm:$PAF_action" "$@"
-	fi
-
-	paf:run_activity clean
-}
-
-#%include apt.sh dnf.sh tazpkg.sh
-# zypper.sh pacman.sh emerge.sh
+#%include apt.sh dnf.sh tazpkg.sh apk.sh
+# zypper.sh pacman.sh emerge.sh # To be implemented
 
 runmain paf paf:main "$@"
