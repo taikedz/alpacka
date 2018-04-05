@@ -696,9 +696,6 @@ paf:main() {
 	PAF_action=search
 	PAF_assume=
 
-	PAF_pm="" # general package manager e.g. apt
-	PAF_bpm="" # base package manager e.g. dpkg
-
 	autohelp:check "$@"
 	if [[ -z "$*" ]]; then
 		out:warn "Nothing to do. Try --help ."
@@ -718,13 +715,14 @@ paf:main() {
 }
 
 paf:get_package_manager() {
-	local drivers=(apt-get:dpkg dnf:rpm yum:rpm apk: ) # zypper pacman tazpkg)
+	local drivers=(apt-get:dpkg dnf:rpm yum:rpm tazpkg: apk: ) # zypper pacman)
 	local drive
 
 	for drive in "${drivers[@]}"; do
-		bincheck:has "${drive%:*}" || continue
-		PAF_pm="${drive%:*}"
-		PAF_bpm="${drive#*:}"
+		PAF_pm="${drive%:*}" # general package manager e.g. apt
+		PAF_bpm="${drive#*:}" # base package manager e.g. dpkg
+
+		bincheck:has "$PAF_pm" || continue
 		return
 	done
 
