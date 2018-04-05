@@ -29,7 +29,7 @@ set -u
 #
 ###/doc
 
-#!/bin/bash
+##bash-libs: autohelp.sh @ 2db5a12b
 
 ### autohelp:print [ SECTION [FILE] ] Usage:bbuild
 # Write your help as documentation comments in your script

@@ -79,7 +79,7 @@ set -euo pipefail
 #
 ###/doc
 
-#!/bin/bash
+##bash-libs: autohelp.sh @ 2db5a12b
 
 ### autohelp:print [ SECTION [FILE] ] Usage:bbuild
 # Write your help as documentation comments in your script
@@ -190,7 +190,7 @@ autohelp:check() {
 		exit 0
 	fi
 }
-#!/bin/bash
+##bash-libs: bincheck.sh @ 2db5a12b
 
 ### bincheck:get COMMANDS ... Usage:bbuild
 #
@@ -262,8 +262,9 @@ bincheck:path() {
 	
 	} || echo "$binname"
 }
+##bash-libs: args.sh @ 2db5a12b
 
-#!/bin/bash
+##bash-libs: patterns.sh @ 2db5a12b
 
 ### Useful patterns Usage:bbuild
 #
@@ -426,6 +427,8 @@ function args:after {
 
 	RETARR_ARGSAFTER=("$@")
 }
+##bash-libs: runmain.sh @ 2db5a12b
+
 ### runmain SCRIPTNAME FUNCTION [ARGUMENTS ...] Usage:bbuild
 #
 # Runs the function FUNCTION with ARGUMENTS, only if the runtime
@@ -459,16 +462,16 @@ function runmain {
 		"$funcall" "$@"
 	fi
 }
-#!/bin/bash
+##bash-libs: out.sh @ 2db5a12b
 
-#!/bin/bash
+##bash-libs: colours.sh @ 2db5a12b
 
 ### Colours for bash Usage:bbuild
 # A series of colour flags for use in outputs.
 #
 # Example:
 # 	
-# 	echo -e "${CRED}Some red text ${CBBLU} some blue text $CDEF some text in the terminal's default colour"
+# 	echo -e "${CRED}Some red text ${CBBLU} some blue text $CDEF some text in the terminal's default colour")
 #
 # Requires processing of escape characters.
 #
@@ -488,28 +491,28 @@ function runmain {
 #
 ###/doc
 
-export CRED="\033[0;31m"
-export CGRN="\033[0;32m"
-export CYEL="\033[0;33m"
-export CBLU="\033[0;34m"
-export CPUR="\033[0;35m"
-export CTEA="\033[0;36m"
+export CRED=$(echo -e "\033[0;31m")
+export CGRN=$(echo -e "\033[0;32m")
+export CYEL=$(echo -e "\033[0;33m")
+export CBLU=$(echo -e "\033[0;34m")
+export CPUR=$(echo -e "\033[0;35m")
+export CTEA=$(echo -e "\033[0;36m")
 
-export CBRED="\033[1;31m"
-export CBGRN="\033[1;32m"
-export CBYEL="\033[1;33m"
-export CBBLU="\033[1;34m"
-export CBPUR="\033[1;35m"
-export CBTEA="\033[1;36m"
+export CBRED=$(echo -e "\033[1;31m")
+export CBGRN=$(echo -e "\033[1;32m")
+export CBYEL=$(echo -e "\033[1;33m")
+export CBBLU=$(echo -e "\033[1;34m")
+export CBPUR=$(echo -e "\033[1;35m")
+export CBTEA=$(echo -e "\033[1;36m")
 
-export HLRED="\033[41m"
-export HLGRN="\033[42m"
-export HLYEL="\033[43m"
-export HLBLU="\033[44m"
-export HLPUR="\033[45m"
-export HLTEA="\033[46m"
+export HLRED=$(echo -e "\033[41m")
+export HLGRN=$(echo -e "\033[42m")
+export HLYEL=$(echo -e "\033[43m")
+export HLBLU=$(echo -e "\033[44m")
+export HLPUR=$(echo -e "\033[45m")
+export HLTEA=$(echo -e "\033[46m")
 
-export CDEF="\033[0m"
+export CDEF=$(echo -e "\033[0m")
 
 ### Console output handlers Usage:bbuild
 #
@@ -539,7 +542,7 @@ out:buffer_initialize
 ###/doc
 function out:debug {
 	if [[ "$MODE_DEBUG" = true ]]; then
-		echo -e "${CBBLU}DEBUG: $CBLU$*$CDEF" 1>&2
+		echo "${CBBLU}DEBUG: $CBLU$*$CDEF" 1>&2
 	fi
 }
 
@@ -566,14 +569,14 @@ function out:debug:fork {
 # print a green informational message to stderr
 ###/doc
 function out:info {
-	echo -e "$CGRN$*$CDEF" 1>&2
+	echo "$CGRN$*$CDEF" 1>&2
 }
 
 ### out:warn MESSAGE Usage:bbuild
 # print a yellow warning message to stderr
 ###/doc
 function out:warn {
-	echo -e "${CBYEL}WARN: $CYEL$*$CDEF" 1>&2
+	echo "${CBYEL}WARN: $CYEL$*$CDEF" 1>&2
 }
 
 ### out:defer MESSAGE Usage:bbuild
@@ -623,7 +626,7 @@ function out:fail {
 		ERCODE="$1"; shift || :
 	fi
 
-	echo -e "${CBRED}ERROR FAIL: $CRED$*$CDEF" 1>&2
+	echo "${CBRED}ERROR FAIL: $CRED$*$CDEF" 1>&2
 	exit $ERCODE
 }
 
@@ -633,7 +636,7 @@ function out:fail {
 # unlike out:fail, does not cause script exit
 ###/doc
 function out:error {
-	echo -e "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
+	echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
 
 ### out:dump Usage:bbuild
@@ -647,10 +650,10 @@ function out:error {
 ###/doc
 
 function out:dump {
-	echo -e -n "${CBPUR}$*" 1>&2
-	echo -e -n "$CPUR" 1>&2
+	echo -n "${CBPUR}$*" 1>&2
+	echo -n "$CPUR" 1>&2
 	cat - 1>&2
-	echo -e -n "$CDEF" 1>&2
+	echo -n "$CDEF" 1>&2
 }
 
 ### out:break MESSAGE Usage:bbuild
@@ -720,7 +723,10 @@ paf:parse_arguments() {
 	for arg in "$@"; do
 		case "$arg" in
 		-u)	paf:add_activity "update" ;;
-		-c)	paf:add_activity "clean" ;;
+
+		-c)	paf:add_activity "clean"
+			PAF_action="" # cleaning is both a post-action activity, and an action in itself
+			;;
 
 		-g*)	PAF_action="upgrade" ;;
 		-i*)	PAF_action="install" ;;
@@ -752,7 +758,9 @@ paf:main() {
 
 	paf:run_activity update
 
-	"$PAF_pm:$PAF_action" "$@"
+	if [[ -n "${PAF_action:-}" ]]; then
+		"$PAF_pm:$PAF_action" "$@"
+	fi
 
 	paf:run_activity clean
 }
@@ -857,32 +865,26 @@ yum:list() { dnf:list ; }
 yum:show() { dnf:show ; }
 yum:upgrade() { dnf:upgrade ; }
 yum:search() { dnf:search ; }
-tazpkg:assume() {
-	if [[ "$PAF_assume" = yes ]]; then
-		echo "-y"
-	fi
-}
-
 tazpkg:update() {
 	sudo tazpkg recharge
 }
 
 tazpkg:clean() {
 	sudo tazpkg clean-cache
-	sudo tazpkg $(tazpkg:assume) autoremove
+	sudo tazpkg autoremove
 }
 
 tazpkg:install() {
 	local pkg
 	for pkg in "${PAF_packages[@]:-}"; do
-		sudo tazpkg -gi $(tazpkg:assume) "$pkg"
+		sudo tazpkg -gi "$pkg"
 	done
 }
 
 tazpkg:remove() {
 	local pkg
 	for pkg in "${PAF_packages[@]:-}"; do
-		sudo tazpkg remove $(tazpkg:assume) "$pkg"
+		sudo tazpkg remove "$pkg"
 	done
 }
 
@@ -899,7 +901,7 @@ tazpkg:show() {
 }
 
 tazpkg:upgrade() {
-	sudo tazpkg $(tazpkg:assume) upgrade
+	sudo tazpkg upgrade
 }
 
 tazpkg:search:and() {

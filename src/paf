@@ -119,7 +119,10 @@ paf:parse_arguments() {
 	for arg in "$@"; do
 		case "$arg" in
 		-u)	paf:add_activity "update" ;;
-		-c)	paf:add_activity "clean" ;;
+
+		-c)	paf:add_activity "clean"
+			PAF_action="" # cleaning is both a post-action activity, and an action in itself
+			;;
 
 		-g*)	PAF_action="upgrade" ;;
 		-i*)	PAF_action="install" ;;
@@ -151,7 +154,9 @@ paf:main() {
 
 	paf:run_activity update
 
-	"$PAF_pm:$PAF_action" "$@"
+	if [[ -n "${PAF_action:-}" ]]; then
+		"$PAF_pm:$PAF_action" "$@"
+	fi
 
 	paf:run_activity clean
 }
