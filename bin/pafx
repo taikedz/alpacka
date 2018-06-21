@@ -16,20 +16,316 @@ set -u
 # 
 # If run without root privileges, this script will try to use pip in user mode, then try homebrew
 # 
-# If you run it with root permissions, OS package managers will be attempted, then secondary package managers like pip, npm, gem, etc
+# If you run it with root permissions, language package managers will be attempted, docker, vagrant and steam will be tried, then flatpak and snap, then finally the OS package managers will be attempted.
 # 
 # Finally, we'll attempt to download a git repo, then a script directly.
 # 
 # 	Do not run in production
 # 
-# The logs are kept in ~/logs
+# The logs are kept in ~/pafx-logs
 # 
 # 	Do not u...
 # 	... you're a responsible person I hope.
 #
 ###/doc
 
-##bash-libs: autohelp.sh @ 2db5a12b
+##bash-libs: out.sh @ 75ff4139 (1.1)
+
+##bash-libs: colours.sh @ 75ff4139 (1.1)
+
+### Colours for bash Usage:bbuild
+# A series of colour flags for use in outputs.
+#
+# Example:
+# 	
+# 	echo -e "${CRED}Some red text ${CBBLU} some blue text $CDEF some text in the terminal's default colour")
+#
+# Requires processing of escape characters.
+#
+# Colours available:
+#
+# CRED, CBRED, HLRED -- red, bold red, highlight red
+# CGRN, CBGRN, HLGRN -- green, bold green, highlight green
+# CYEL, CBYEL, HLYEL -- yellow, bold yellow, highlight yellow
+# CBLU, CBBLU, HLBLU -- blue, bold blue, highlight blue
+# CPUR, CBPUR, HLPUR -- purple, bold purple, highlight purple
+# CTEA, CBTEA, HLTEA -- teal, bold teal, highlight teal
+#
+# CDEF -- switches to the terminal default
+# CUNL -- add underline
+#
+# Note that highlight and underline must be applied or re-applied after specifying a colour.
+#
+# If the session is detected as being in a pipe, colours will be turned off.
+#   You can override this by calling `colours:check --color=always` at the start of your script
+#
+###/doc
+
+##bash-libs: tty.sh @ 75ff4139 (1.1)
+
+tty:is_ssh() {
+    [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
+}
+
+tty:is_pipe() {
+    [[ ! -t 1 ]]
+}
+
+### colours:check ARGS Usage:bbuild
+#
+# Check the args to see if there's a `--color=always` or `--color=never`
+#   and reload the colours appropriately
+#
+###/doc
+colours:check() {
+    if [[ "$*" =~ --color=always ]]; then
+        COLOURS_ON=true
+    elif [[ "$*" =~ --color=never ]]; then
+        COLOURS_ON=false
+    fi
+
+    colours:define
+    return 0
+}
+
+colours:auto() {
+    if tty:is_pipe ; then
+        COLOURS_ON=false
+    else
+        COLOURS_ON=true
+    fi
+
+    colours:define
+    return 0
+}
+
+colours:define() {
+    if [[ "$COLOURS_ON" = false ]]; then
+
+        export CRED=''
+        export CGRN=''
+        export CYEL=''
+        export CBLU=''
+        export CPUR=''
+        export CTEA=''
+
+        export CBRED=''
+        export CBGRN=''
+        export CBYEL=''
+        export CBBLU=''
+        export CBPUR=''
+        export CBTEA=''
+
+        export HLRED=''
+        export HLGRN=''
+        export HLYEL=''
+        export HLBLU=''
+        export HLPUR=''
+        export HLTEA=''
+
+        export CDEF=''
+
+    else
+
+        export CRED=$(echo -e "\033[0;31m")
+        export CGRN=$(echo -e "\033[0;32m")
+        export CYEL=$(echo -e "\033[0;33m")
+        export CBLU=$(echo -e "\033[0;34m")
+        export CPUR=$(echo -e "\033[0;35m")
+        export CTEA=$(echo -e "\033[0;36m")
+
+        export CBRED=$(echo -e "\033[1;31m")
+        export CBGRN=$(echo -e "\033[1;32m")
+        export CBYEL=$(echo -e "\033[1;33m")
+        export CBBLU=$(echo -e "\033[1;34m")
+        export CBPUR=$(echo -e "\033[1;35m")
+        export CBTEA=$(echo -e "\033[1;36m")
+
+        export HLRED=$(echo -e "\033[41m")
+        export HLGRN=$(echo -e "\033[42m")
+        export HLYEL=$(echo -e "\033[43m")
+        export HLBLU=$(echo -e "\033[44m")
+        export HLPUR=$(echo -e "\033[45m")
+        export HLTEA=$(echo -e "\033[46m")
+
+        export CDEF=$(echo -e "\033[0m")
+
+    fi
+}
+
+colours:auto
+
+### Console output handlers Usage:bbuild
+#
+# Write data to console stderr using colouring
+#
+###/doc
+
+### Environment Variables Usage:bbuild
+#
+# MODE_DEBUG : set to 'true' to enable debugging output
+# MODE_DEBUG_VERBOSE : set to 'true' to enable command echoing
+#
+###/doc
+
+: ${MODE_DEBUG=false}
+: ${MODE_DEBUG_VERBOSE=false}
+
+# Internal
+function out:buffer_initialize {
+    OUTPUT_BUFFER_defer=(:)
+}
+out:buffer_initialize
+
+### out:debug MESSAGE Usage:bbuild
+# print a blue debug message to stderr
+# only prints if MODE_DEBUG is set to "true"
+###/doc
+function out:debug {
+    if [[ "$MODE_DEBUG" = true ]]; then
+        echo "${CBBLU}DEBUG: $CBLU$*$CDEF" 1>&2
+    fi
+}
+
+### out:debug:fork [MARKER] Usage:bbuild
+#
+# Pipe the data coming through stdin to stdout
+#
+# If debug mode is on, *also* write the same data to stderr, each line preceded by MARKER
+#
+# Insert this debug fork into pipes to see their output
+#
+###/doc
+function out:debug:fork {
+    if [[ "$MODE_DEBUG" = true ]]; then
+        local MARKER="${1:-DEBUG: }"; shift || :
+
+        cat - | sed -r "s/^/$MARKER/" | tee -a /dev/stderr
+    else
+        cat -
+    fi
+}
+
+### out:info MESSAGE Usage:bbuild
+# print a green informational message to stderr
+###/doc
+function out:info {
+    echo "$CGRN$*$CDEF" 1>&2
+}
+
+### out:warn MESSAGE Usage:bbuild
+# print a yellow warning message to stderr
+###/doc
+function out:warn {
+    echo "${CBYEL}WARN: $CYEL$*$CDEF" 1>&2
+}
+
+### out:defer MESSAGE Usage:bbuild
+# Store a message in the output buffer for later use
+###/doc
+function out:defer {
+    OUTPUT_BUFFER_defer[${#OUTPUT_BUFFER_defer[@]}]="$*"
+}
+
+### out:flush HANDLER ... Usage:bbuild
+#
+# Pass the output buffer to the command defined by HANDLER
+# and empty the buffer
+#
+# Examples:
+#
+# 	out:flush echo -e
+#
+# 	out:flush out:warn
+#
+# (escaped newlines are added in the buffer, so `-e` option is
+#  needed to process the escape sequences)
+#
+###/doc
+function out:flush {
+    [[ -n "$*" ]] || out:fail "Did not provide a command for buffered output\n\n${OUTPUT_BUFFER_defer[*]}"
+
+    [[ "${#OUTPUT_BUFFER_defer[@]}" -gt 1 ]] || return 0
+
+    for buffer_line in "${OUTPUT_BUFFER_defer[@]:1}"; do
+        "$@" "$buffer_line"
+    done
+
+    out:buffer_initialize
+}
+
+### out:fail [CODE] MESSAGE Usage:bbuild
+# print a red failure message to stderr and exit with CODE
+# CODE must be a number
+# if no code is specified, error code 127 is used
+###/doc
+function out:fail {
+    local ERCODE=127
+    local numpat='^[0-9]+$'
+
+    if [[ "$1" =~ $numpat ]]; then
+        ERCODE="$1"; shift || :
+    fi
+
+    echo "${CBRED}ERROR FAIL: $CRED$*$CDEF" 1>&2
+    exit $ERCODE
+}
+
+### out:error MESSAGE Usage:bbuild
+# print a red error message to stderr
+#
+# unlike out:fail, does not cause script exit
+###/doc
+function out:error {
+    echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
+}
+
+### out:dump Usage:bbuild
+#
+# Dump stdin contents to console stderr. Requires debug mode.
+#
+# Example
+#
+# 	action_command 2>&1 | out:dump
+#
+###/doc
+
+function out:dump {
+    echo -n "${CBPUR}$*" 1>&2
+    echo -n "$CPUR" 1>&2
+    cat - 1>&2
+    echo -n "$CDEF" 1>&2
+}
+
+### out:break MESSAGE Usage:bbuild
+#
+# Add break points to a script
+#
+# Requires MODE_DEBUG set to true
+#
+# When the script runs, the message is printed with a propmt, and execution pauses.
+#
+# Press return to continue execution.
+#
+# Type `exit`, `quit` or `stop` to stop the program. If the breakpoint is in a subshell,
+#  execution from after the subshell will be resumed.
+#
+###/doc
+
+function out:break {
+    [[ "$MODE_DEBUG" = true ]] || return 0
+
+    echo -en "${CRED}BREAKPOINT: $* >$CDEF " >&2
+    read
+    if [[ "$REPLY" =~ quit|exit|stop ]]; then
+        out:fail "ABORT"
+    fi
+}
+
+if [[ "$MODE_DEBUG_VERBOSE" = true ]]; then
+    set -x
+fi
+##bash-libs: autohelp.sh @ 75ff4139 (1.1)
 
 ### autohelp:print [ SECTION [FILE] ] Usage:bbuild
 # Write your help as documentation comments in your script
@@ -40,14 +336,14 @@ set -u
 #
 # A help comment looks like this:
 #
-#	### <title> Usage:help
-#	#
-#	# <some content>
-#	#
-#	# end with "###/doc" on its own line (whitespaces before
-#	# and after are OK)
-#	#
-#	###/doc
+#    ### <title> Usage:help
+#    #
+#    # <some content>
+#    #
+#    # end with "###/doc" on its own line (whitespaces before
+#    # and after are OK)
+#    #
+#    ###/doc
 #
 # You can set a different help section by specifying a subsection
 #
@@ -68,10 +364,10 @@ set -u
 HELPCHAR='#'
 
 function autohelp:print {
-	local SECTION_STRING="${1:-}"; shift || :
-	local TARGETFILE="${1:-}"; shift || :
-	[[ -n "$SECTION_STRING" ]] || SECTION_STRING=help
-	[[ -n "$TARGETFILE" ]] || TARGETFILE="$0"
+    local SECTION_STRING="${1:-}"; shift || :
+    local TARGETFILE="${1:-}"; shift || :
+    [[ -n "$SECTION_STRING" ]] || SECTION_STRING=help
+    [[ -n "$TARGETFILE" ]] || TARGETFILE="$0"
 
         echo -e "\n$(basename "$TARGETFILE")\n===\n"
         local SECSTART='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s+(.+?)\s+Usage:'"$SECTION_STRING"'\s*$'
@@ -87,7 +383,7 @@ function autohelp:print {
                         if [[ "$secline" =~ $SECEND ]]; then
                                 insec=false
                         else
-				echo "$secline" | sed -r "s/^\s*$HELPCHAR//g"
+                echo "$secline" | sed -r "s/^\s*$HELPCHAR//g"
                         fi
                 fi
         done < "$TARGETFILE"
@@ -95,7 +391,7 @@ function autohelp:print {
         if [[ "$insec" = true ]]; then
                 echo "WARNING: Non-terminated help block." 1>&2
         fi
-	echo ""
+    echo ""
 }
 
 ### autohelp:paged Usage:bbuild
@@ -104,8 +400,8 @@ function autohelp:print {
 #
 ###/doc
 function autohelp:paged {
-	: ${PAGER=less}
-	autohelp:print "$@" | $PAGER
+    : ${PAGER=less}
+    autohelp:print "$@" | $PAGER
 }
 
 ### autohelp:check Usage:bbuild
@@ -114,117 +410,231 @@ function autohelp:paged {
 #
 # Example use:
 #
-#	#!/bin/bash
+#    #!/bin/bash
 #
-#	### Some help Usage:help
-#	#
-#	# Some help text
-#	#
-#	###/doc
+#    ### Some help Usage:help
+#    #
+#    # Some help text
+#    #
+#    ###/doc
 #
-#	#%include autohelp.sh
+#    #%include autohelp.sh
 #
-#	main() {
-#		autohelp:check "$@"
+#    main() {
+#        autohelp:check "$@"
 #
-#		# now add your code
-#	}
+#        # now add your code
+#    }
 #
-#	main "$@"
+#    main "$@"
 #
 ###/doc
 autohelp:check() {
-	if [[ "$*" =~ --help ]]; then
-		cols="$(tput cols)"
-		autohelp:print | fold -w "$cols" -s || autohelp:print
-		exit 0
-	fi
+    if [[ "$*" =~ --help ]]; then
+        cols="$(tput cols)"
+        autohelp:print | fold -w "$cols" -s || autohelp:print
+        exit 0
+    fi
+}
+##bash-libs: bincheck.sh @ 75ff4139 (1.1)
+
+### bincheck:get COMMANDS ... Usage:bbuild
+#
+# Return the first existing binary
+#
+# Useful for finding an appropriate binary when you know
+# different systems may supply binaries under different names.
+#
+# Returns the full path from `which` for the first executable
+# encountered.
+#
+# Example:
+#
+# 	bincheck:get markdown_py markdown ./mymarkdown
+#
+# Tries in turn to get a `markdown_py`, then a `markdown`, and then a local `./mymarkdown`
+#
+###/doc
+
+bincheck:get() {
+    local BINEXE=
+    for binname in "$@"; do
+        # Some implementations of `which` print error messages
+        # Not useful here.
+        BINEXE=$(which "$binname" 2>/dev/null)
+
+        if [[ -n "$BINEXE" ]]; then
+            echo "$BINEXE"
+            return 0
+        fi
+    done
+    return 1
+}
+
+### bincheck:has NAMES ... Usage:bbuild
+#
+# Determine if at least one of the binaries listed is present and installed on the system
+#
+###/doc
+
+bincheck:has() {
+    [[ -n "$(bincheck:get "$@")" ]]
+}
+
+### bincheck:path NAME Usage:bbuild
+#
+# Determine the actual path to the command
+#
+# Relative paths are not expanded.
+#
+###/doc
+
+bincheck:path() {
+    local binname="$1"; shift || :
+
+    [[ "$binname" =~ / ]] && { 
+        # A relative path cannot be resolved, just check existence
+        [[ -e "$binname" ]] && echo "$binname" || return 1
+
+    } || binname="$(which "$binname" 2>/dev/null)"
+
+    # `which` failed
+    [[ -n "$binname" ]] || return 1
+
+    [[ -h "$binname" ]] && {
+
+        local pointedname="$(ls -l "$binname"|grep -oP "$binname.+"|sed "s|$binname -> ||")"
+        bincheck:path "$pointedname" ; return "$?"
+    
+    } || echo "$binname"
 }
 
 autohelp:check "$@"
 
-mkdir -p ~/logs/
+LOGSD="$HOME/pafx-logs"
 
-
-function localinstall {
-	if [[ -d "$1" ]]; then
-		cd "$1"
-		if [[ -f configure ]] && [[ -f Makefile ]]; then
-			snafun configure-script
-
-		elif [[ -f setup ]]; then
-			snafun ./setup
-
-		elif [[ -f setup.sh ]]; then
-			snafun ./setup.sh
-
-		elif [[ -f install ]]; then
-			snafun ./install
-
-		elif [[ -f install.sh ]]; then
-			snafun ./install.sh
-
-		elif [[ -f config.json ]] || [[ -f "$1/config.json" ]]; then
-			snafun composer "$1"
-		fi
-		cd -
-	fi
-}
-
-function composer {
-	[[ ! -f config.json ]] &&  cd "$1"
-	php composer.phar install
-}
-
-function configure-script {
-	make clean
-	./configure
-	make
-	make install
-}
-
-function wehaz { which "$1" 2>&1 >/dev/null ; }
+mkdir -p "$LOGSD"
 
 function snafun {
 	local thecommand="$1" ; shift
 
-	wehaz "$thecommand" || return
+	bincheck:has "$thecommand" || return
 
-	"$thecommand" "$@" 2>&1 | tee -a "$HOME/logs/${thecommand}.log" | tee -a "$HOME/logs/global.log"
+	"$thecommand" "$@" 2>&1 | keeplog
 
 	if [[ "$?" -lt 1 ]]; then exit; fi
 }
 
+function keeplog {
+    tee -a "$LOGSD/${thecommand}.log" | tee -a "$LOGSD/global.log"
+}
 
+function localinstall {
+    local lfile
+
+    if [[ -f "$1" ]]; then
+        snafun dpkg -i "$1"
+        snafun rpm -i "$1"
+        snafun tazpkg -i "$1"
+
+	elif [[ -d "$1" ]]; then
+		(
+        cd "$1"
+		if [[ -f configure ]] && [[ -f Makefile ]]; then
+			configure-script
+		elif [[ -f config.json ]] || [[ -f "$1/config.json" ]]; then
+			composer "$1"
+        fi
+
+        for lfile in setup setup.sh install install.sh; do
+            if [[ -f "$lfile" ]]; then
+                snafun "./$lfile"
+            fi
+        done
+		)
+	fi
+}
+
+function composer {
+	cd "$1"
+	snafun php composer.phar install
+}
+
+function configure-script {
+	make clean | keeplog
+	./configure | keeplog
+	make | keeplog
+	snafun make install
+}
+
+function webscript {
+	localdownload=/tmp/curl_"$(echo "$1"|sed -r 's/[^a-zA-Z0-9._-]+/_/g')"
+	curl "$1" > "$localdownload" && cat "$localdownload" | bash 2>&1 | keeplog
+	exit
+}
+
+function webpkg {
+	localdownload=/tmp/curl_"$(echo "$1"|sed -r 's/[^a-zA-Z0-9._-]+/_/g')"
+	curl "$1" > "$localdownload" | keeplog
+    localinstall "$localdownload"
+	exit
+}
+
+function searchweb {
+	local QUERY="$1" ; shift
+	local PATTERN="$1" ; shift
+	elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=$QUERY" | grep -P "$PATTERN" -o|head -n 1
+}
+
+
+# +++++++++++++++++++++++++++++++++
 # Try without root access
 
-[[ $UID -ne 0 ]] && snafun pip install "$1" --user
-snafun brew install "$1"
-snafun pip install "$1"
+[[ $UID -ne 0 ]] && {
 
-if [[ "$UID" -gt 0 ]]; then
-	echo "[1;33mYou are not root. I trust you are not in production?[0m"
-	exit 1
-fi
+    # That dangerous thing that shouldn't be done
+    [[ "$1" =~ ^[a-z]+://.+.sh$ ]] && webscript "$1"
 
-echo -e "[1;31m=============\nYou are on your own now.\n\n[0m"
-sleep 1
+    snafun pip install "$1" --user
+    snafun brew install "$1"
+}
 
-# Local package?
+# User space ^
+# +++++++++++++++
+[[ "$UID" = 0 ]] || out:fail "You are not root - stopping here. I trust you are not in production?"
+# +++++++++++++++
+# Root space :
 
-if [[ -f "$1" ]]; then
-	snafun dpkg -i "$1"
-	snafun rpm -i "$1"
-	snafun tazpkg -i "$1"
-fi
+[[ "$1" =~ ^[a-z]+://.+\.(deb|rpm)$ ]] && webscript "$1"
 
-# Maybe it's in a local directory?
+out:warn "========================"
+out:warn "You are on your own now."
+echo -e "\n\n"
+sleep 2
+
+# Maybe it's in a local file or directory?
 snafun localinstall "$1"
 
+# Try language specific package managers
+snafun npm install "$1"          # Server-side JavaScript
+snafun pear install "$1"         # PHP
+snafun cpanm "$1"                # Perl
+snafun pip3 install "$1"         # Python 3
+snafun pip install "$1"          # Python 2
+snafun easy_install "$1"         # Legacy python
+snafun gem install "$1"          # Ruby
+
+# Try image distribution networks
+snafun flatpak install flathub "$1"
+snafun snap install "$1"
+snafun docker run "$1"
+snafun vagrant up "$1"
+snafun steamcmd "+app_update" "$1" validate
+
 # Try the system package managers
+snafun apk add "$1"              # Alpine
 snafun dnf install "$1"          # Fedora, RedHat 7+
 snafun yum install "$1"          # All other RPM systems with yum
-snafun snap install "$1"         # Ubuntu specific package manager
 snafun apt-get install "$1"      # Debian family, incl Ubuntu
 snafun pacman -Syu "$1"          # Arch standard
 snafun yaourt -Syu "$1" --aur    # More arch, with AUR support
@@ -233,41 +643,9 @@ snafun emerge "$1"               # Gentoo
 snafun tazpkg -gi "$1"           # SliTaz
 snafun pkg install "$1"          # FreeBSD
 
-# Try language specific package managers
-snafun npm install "$1"          # Server-side JavaScript
-snafun pear install "$1"         # PHP
-snafun cpanm "$1"                # Perl
-snafun pip install "$1"          # Python 2
-snafun pip3 install "$1"         # Python 3
-snafun easy_install "$1"         # Legacy python
-snafun gem install "$1"          # Ruby
+# Find some random github repo. First match will do. Yup.
 
-# Try image distribution networks
-snafun docker run "$1"
-snafun vagrant up "$1"
-snafun steamcmd "+app_update" "$1" validate
-
-# That dangerous thing that shouldn't be done
-function webresource {
-	remotescript=/tmp/curl_"$(echo "$1"|sed -r 's/[^a-zA-Z0-9._-]+/_/g')"
-	# TODO detect deb or  rpm
-	curl "$1" > "$remotescript" && cat "$remotescript" | bash 2>&1 |tee -a ~/logs/curl.log
-
-	exit
-}
-
-urlpat="^[a-z]+://"
-[[ "$1" =~ $urlpat ]] && webresource "$1"
-
-# Find some random github repo. First match will do
-
-function searchweb {
-	local QUERY="$1" ; shift
-	local PATTERN="$1" ; shift
-	elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=$QUERY" | grep -P "$PATTERN" -o|head -n 1
-}
-
-if wehaz elinks; then
+if bincheck:has elinks && bincheck:has git; then
 	giturl="$(searchweb "$1" "https://github.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9._-]+")"
 
 	[[ -n "$giturl" ]] && git clone "$giturl" 2>&1 >/dev/null && snafun localinstall "$1"
@@ -275,4 +653,4 @@ fi
 
 # and if even that failed
 
-echo "[1;31m..... could not find '$1', and BELIEVE ME -- I tried. [0m"
+out:fail "..... could not find '$1', and BELIEVE ME -- I tried."

@@ -25,13 +25,13 @@
 # OPTIONS
 # 
 # --update|-u
-# 	Whether to run the package list update mechanism, if appropriate
+#     Whether to run the package list update mechanism, if appropriate
 # 
 # --filter|-f
-# 	filter results using a perl-style regular expression (`grep -P`)
+#     filter results using a perl-style regular expression (`grep -P`)
 # 
 # --help|-h
-# 	Prints this help
+#     Prints this help
 ###/doc
 
 #%include autohelp.sh out.sh
@@ -45,25 +45,25 @@ ARG1=
 FILTER=
 
 while [[ -n "$@" ]]; do
-	ARG=$1 ; shift
-	case "$ARG" in
-	-u|--update)
-		DOUPDATE=yes
-		;;
-	--debug)
-		DEBUGMODE=yes
-		;;
-	-f|--filter)
-		FILTER="$(echo $1|sed -r "s/[\"']//g")" ; shift
-		;;
-	-h|--help)
-		printhelp
-		exit 0
-		;;
-	*)
-		ARGS="$ARGS $ARG"
-		;;
-	esac
+    ARG=$1 ; shift
+    case "$ARG" in
+    -u|--update)
+        DOUPDATE=yes
+        ;;
+    --debug)
+        DEBUGMODE=yes
+        ;;
+    -f|--filter)
+        FILTER="$(echo $1|sed -r "s/[\"']//g")" ; shift
+        ;;
+    -h|--help)
+        printhelp
+        exit 0
+        ;;
+    *)
+        ARGS="$ARGS $ARG"
+        ;;
+    esac
 done
 
 function firstarg { ARG1="$1" ; }
@@ -74,56 +74,56 @@ out:debug "ARG1=$ARG1"
 function docpan { echo "m $ARG1" | cpan ; }
 
 if [[ -z "$ARGS" ]]; then
-	out:fail "You must supply at least one package name to search."
+    out:fail "You must supply at least one package name to search."
 fi
 
 SFILE="/tmp/searchfile_$(date "+%F%T"|md5sum|cut -d' ' -f1)"
 touch "$SFILE" || out:fail "Cannot create temp file"
 
 function searchit {
-	out:info "Searching $1"
-	out:debug "$@"
-	local SOURCE=$1 ; shift
-	echo -e "\n[1;34m\t$SOURCE\n=============[0m" >> "$SFILE"
-	if [[ -n "$FILTER" ]]; then
-		$@ | grep -P "$FILTER" >> "$SFILE"
-	else
-		$@ >> "$SFILE"
-	fi
+    out:info "Searching $1"
+    out:debug "$@"
+    local SOURCE=$1 ; shift
+    echo -e "\n[1;34m\t$SOURCE\n=============[0m" >> "$SFILE"
+    if [[ -n "$FILTER" ]]; then
+        $@ | grep -P "$FILTER" >> "$SFILE"
+    else
+        $@ >> "$SFILE"
+    fi
 }
 
 function doupdate {
-	if [[ "$DOUPDATE" = yes ]]; then
-		sudo $@
-	fi
+    if [[ "$DOUPDATE" = yes ]]; then
+        sudo $@
+    fi
 }
 
 if [[ -f /usr/local/bin/paf ]]; then # support our own wrapper :-)
-	doupdate paf -u
-	searchit paf paf "$ARGS"
+    doupdate paf -u
+    searchit paf paf "$ARGS"
 elif [[ -f /usr/bin/apt-cache ]]; then
-	doupdate apt-get update
-	searchit APT apt-cache search "$ARGS"
+    doupdate apt-get update
+    searchit APT apt-cache search "$ARGS"
 elif [[ -f /usr/bin/dnf ]]; then
-	searchit dnf dnf search "$ARGS"
-	searchit dnfgroup dnf groupsearch "$ARGS"
+    searchit dnf dnf search "$ARGS"
+    searchit dnfgroup dnf groupsearch "$ARGS"
 elif [[ -f /usr/bin/yum ]]; then
-	searchit yum yum search "$ARGS"
-	searchit yumgroup yum groupsearch "$ARGS"
+    searchit yum yum search "$ARGS"
+    searchit yumgroup yum groupsearch "$ARGS"
 elif [[ -f /usr/bin/zypper ]]; then
-	searchit zypper zypper search "$ARGS"
+    searchit zypper zypper search "$ARGS"
 elif [[ -f /usr/bin/yaourt ]]; then
-	doupdate yaourt -Sy
-	searchit yaourt yaourt -Qs "$ARGS"
+    doupdate yaourt -Sy
+    searchit yaourt yaourt -Qs "$ARGS"
 elif [[ -f /usr/bin/pacman ]]; then
-	doupdate pacman -Sy
-	searchit pacman pacman -Qs "$ARGS"
+    doupdate pacman -Sy
+    searchit pacman pacman -Qs "$ARGS"
 elif [[ -f /usr/bin/emerge ]]; then
-	doupdate emerge sync
-	searchit emerge emerge -s "$ARG1"
+    doupdate emerge sync
+    searchit emerge emerge -s "$ARG1"
 elif [[ -f /usr/bin/tazpkg ]]; then
-	doupdate tazpkg recharge
-	searchit tazpkg tazpkg search "$ARG1"
+    doupdate tazpkg recharge
+    searchit tazpkg tazpkg search "$ARG1"
 fi
 
 # do these need explicit updates?
@@ -136,35 +136,35 @@ if [[ -f /usr/bin/pear ]]; then searchit pear pear search "$ARGS" ; fi
 # package maangement locally
 
 function findpkg {
-	EXT=.$1 ; shift
-	locate "$ARG1" | egrep "^${HOME}/.+$EXT\$"
+    EXT=.$1 ; shift
+    locate "$ARG1" | egrep "^${HOME}/.+$EXT\$"
 }
 
 function findfile {
-	SIGFILE=$1 ; shift
-	locate "$ARG1" | egrep "^${HOME}/.+/$SIGFILE\$"
+    SIGFILE=$1 ; shift
+    locate "$ARG1" | egrep "^${HOME}/.+/$SIGFILE\$"
 }
 
 if [[ -f /usr/bin/dpkg ]]; then
-	searchit "Local deb files" findpkg ".deb"
+    searchit "Local deb files" findpkg ".deb"
 elif [[ -f /usr/bin/yum ]] || [[ -f /usr/bin/dpkg ]]; then
-	searchit "Local RPM files" findpkg ".rpm"
+    searchit "Local RPM files" findpkg ".rpm"
 fi
 
 # ================
 # some more outlandish searches
 
 function searchweb {
-	local QUERY="$(echo $1|base64 -di)" ; shift
-	local PATTERN="$(echo $1|base64 -di)" ; shift
-	elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=$QUERY" | grep -P "$PATTERN" -o|sort|uniq
+    local QUERY="$(echo $1|base64 -di)" ; shift
+    local PATTERN="$(echo $1|base64 -di)" ; shift
+    elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=$QUERY" | grep -P "$PATTERN" -o|sort|uniq
 }
 
 if [[ -f /usr/bin/elinks ]]; then
-	# ---- Github
-	searchit github searchweb $(echo "github%20\"$ARG1\""|base64 -w 0) $(echo "https://github.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9._-]+"|base64 -w 0)
+    # ---- Github
+    searchit github searchweb $(echo "github%20\"$ARG1\""|base64 -w 0) $(echo "https://github.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9._-]+"|base64 -w 0)
 else
-	out:warn "We need elinks for searching the web"
+    out:warn "We need elinks for searching the web"
 fi
 
 # ===============

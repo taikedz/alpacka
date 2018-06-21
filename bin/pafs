@@ -25,16 +25,16 @@
 # OPTIONS
 # 
 # --update|-u
-# 	Whether to run the package list update mechanism, if appropriate
+#     Whether to run the package list update mechanism, if appropriate
 # 
 # --filter|-f
-# 	filter results using a perl-style regular expression (`grep -P`)
+#     filter results using a perl-style regular expression (`grep -P`)
 # 
 # --help|-h
-# 	Prints this help
+#     Prints this help
 ###/doc
 
-##bash-libs: autohelp.sh @ 2db5a12b
+##bash-libs: autohelp.sh @ 75ff4139 (1.1)
 
 ### autohelp:print [ SECTION [FILE] ] Usage:bbuild
 # Write your help as documentation comments in your script
@@ -45,14 +45,14 @@
 #
 # A help comment looks like this:
 #
-#	### <title> Usage:help
-#	#
-#	# <some content>
-#	#
-#	# end with "###/doc" on its own line (whitespaces before
-#	# and after are OK)
-#	#
-#	###/doc
+#    ### <title> Usage:help
+#    #
+#    # <some content>
+#    #
+#    # end with "###/doc" on its own line (whitespaces before
+#    # and after are OK)
+#    #
+#    ###/doc
 #
 # You can set a different help section by specifying a subsection
 #
@@ -73,10 +73,10 @@
 HELPCHAR='#'
 
 function autohelp:print {
-	local SECTION_STRING="${1:-}"; shift || :
-	local TARGETFILE="${1:-}"; shift || :
-	[[ -n "$SECTION_STRING" ]] || SECTION_STRING=help
-	[[ -n "$TARGETFILE" ]] || TARGETFILE="$0"
+    local SECTION_STRING="${1:-}"; shift || :
+    local TARGETFILE="${1:-}"; shift || :
+    [[ -n "$SECTION_STRING" ]] || SECTION_STRING=help
+    [[ -n "$TARGETFILE" ]] || TARGETFILE="$0"
 
         echo -e "\n$(basename "$TARGETFILE")\n===\n"
         local SECSTART='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s+(.+?)\s+Usage:'"$SECTION_STRING"'\s*$'
@@ -92,7 +92,7 @@ function autohelp:print {
                         if [[ "$secline" =~ $SECEND ]]; then
                                 insec=false
                         else
-				echo "$secline" | sed -r "s/^\s*$HELPCHAR//g"
+                echo "$secline" | sed -r "s/^\s*$HELPCHAR//g"
                         fi
                 fi
         done < "$TARGETFILE"
@@ -100,7 +100,7 @@ function autohelp:print {
         if [[ "$insec" = true ]]; then
                 echo "WARNING: Non-terminated help block." 1>&2
         fi
-	echo ""
+    echo ""
 }
 
 ### autohelp:paged Usage:bbuild
@@ -109,8 +109,8 @@ function autohelp:print {
 #
 ###/doc
 function autohelp:paged {
-	: ${PAGER=less}
-	autohelp:print "$@" | $PAGER
+    : ${PAGER=less}
+    autohelp:print "$@" | $PAGER
 }
 
 ### autohelp:check Usage:bbuild
@@ -119,35 +119,35 @@ function autohelp:paged {
 #
 # Example use:
 #
-#	#!/bin/bash
+#    #!/bin/bash
 #
-#	### Some help Usage:help
-#	#
-#	# Some help text
-#	#
-#	###/doc
+#    ### Some help Usage:help
+#    #
+#    # Some help text
+#    #
+#    ###/doc
 #
-#	#%include autohelp.sh
+#    #%include autohelp.sh
 #
-#	main() {
-#		autohelp:check "$@"
+#    main() {
+#        autohelp:check "$@"
 #
-#		# now add your code
-#	}
+#        # now add your code
+#    }
 #
-#	main "$@"
+#    main "$@"
 #
 ###/doc
 autohelp:check() {
-	if [[ "$*" =~ --help ]]; then
-		cols="$(tput cols)"
-		autohelp:print | fold -w "$cols" -s || autohelp:print
-		exit 0
-	fi
+    if [[ "$*" =~ --help ]]; then
+        cols="$(tput cols)"
+        autohelp:print | fold -w "$cols" -s || autohelp:print
+        exit 0
+    fi
 }
-##bash-libs: out.sh @ 2db5a12b
+##bash-libs: out.sh @ 75ff4139 (1.1)
 
-##bash-libs: colours.sh @ 2db5a12b
+##bash-libs: colours.sh @ 75ff4139 (1.1)
 
 ### Colours for bash Usage:bbuild
 # A series of colour flags for use in outputs.
@@ -172,30 +172,104 @@ autohelp:check() {
 #
 # Note that highlight and underline must be applied or re-applied after specifying a colour.
 #
+# If the session is detected as being in a pipe, colours will be turned off.
+#   You can override this by calling `colours:check --color=always` at the start of your script
+#
 ###/doc
 
-export CRED=$(echo -e "\033[0;31m")
-export CGRN=$(echo -e "\033[0;32m")
-export CYEL=$(echo -e "\033[0;33m")
-export CBLU=$(echo -e "\033[0;34m")
-export CPUR=$(echo -e "\033[0;35m")
-export CTEA=$(echo -e "\033[0;36m")
+##bash-libs: tty.sh @ 75ff4139 (1.1)
 
-export CBRED=$(echo -e "\033[1;31m")
-export CBGRN=$(echo -e "\033[1;32m")
-export CBYEL=$(echo -e "\033[1;33m")
-export CBBLU=$(echo -e "\033[1;34m")
-export CBPUR=$(echo -e "\033[1;35m")
-export CBTEA=$(echo -e "\033[1;36m")
+tty:is_ssh() {
+    [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
+}
 
-export HLRED=$(echo -e "\033[41m")
-export HLGRN=$(echo -e "\033[42m")
-export HLYEL=$(echo -e "\033[43m")
-export HLBLU=$(echo -e "\033[44m")
-export HLPUR=$(echo -e "\033[45m")
-export HLTEA=$(echo -e "\033[46m")
+tty:is_pipe() {
+    [[ ! -t 1 ]]
+}
 
-export CDEF=$(echo -e "\033[0m")
+### colours:check ARGS Usage:bbuild
+#
+# Check the args to see if there's a `--color=always` or `--color=never`
+#   and reload the colours appropriately
+#
+###/doc
+colours:check() {
+    if [[ "$*" =~ --color=always ]]; then
+        COLOURS_ON=true
+    elif [[ "$*" =~ --color=never ]]; then
+        COLOURS_ON=false
+    fi
+
+    colours:define
+    return 0
+}
+
+colours:auto() {
+    if tty:is_pipe ; then
+        COLOURS_ON=false
+    else
+        COLOURS_ON=true
+    fi
+
+    colours:define
+    return 0
+}
+
+colours:define() {
+    if [[ "$COLOURS_ON" = false ]]; then
+
+        export CRED=''
+        export CGRN=''
+        export CYEL=''
+        export CBLU=''
+        export CPUR=''
+        export CTEA=''
+
+        export CBRED=''
+        export CBGRN=''
+        export CBYEL=''
+        export CBBLU=''
+        export CBPUR=''
+        export CBTEA=''
+
+        export HLRED=''
+        export HLGRN=''
+        export HLYEL=''
+        export HLBLU=''
+        export HLPUR=''
+        export HLTEA=''
+
+        export CDEF=''
+
+    else
+
+        export CRED=$(echo -e "\033[0;31m")
+        export CGRN=$(echo -e "\033[0;32m")
+        export CYEL=$(echo -e "\033[0;33m")
+        export CBLU=$(echo -e "\033[0;34m")
+        export CPUR=$(echo -e "\033[0;35m")
+        export CTEA=$(echo -e "\033[0;36m")
+
+        export CBRED=$(echo -e "\033[1;31m")
+        export CBGRN=$(echo -e "\033[1;32m")
+        export CBYEL=$(echo -e "\033[1;33m")
+        export CBBLU=$(echo -e "\033[1;34m")
+        export CBPUR=$(echo -e "\033[1;35m")
+        export CBTEA=$(echo -e "\033[1;36m")
+
+        export HLRED=$(echo -e "\033[41m")
+        export HLGRN=$(echo -e "\033[42m")
+        export HLYEL=$(echo -e "\033[43m")
+        export HLBLU=$(echo -e "\033[44m")
+        export HLPUR=$(echo -e "\033[45m")
+        export HLTEA=$(echo -e "\033[46m")
+
+        export CDEF=$(echo -e "\033[0m")
+
+    fi
+}
+
+colours:auto
 
 ### Console output handlers Usage:bbuild
 #
@@ -215,7 +289,7 @@ export CDEF=$(echo -e "\033[0m")
 
 # Internal
 function out:buffer_initialize {
-	OUTPUT_BUFFER_defer=(:)
+    OUTPUT_BUFFER_defer=(:)
 }
 out:buffer_initialize
 
@@ -224,9 +298,9 @@ out:buffer_initialize
 # only prints if MODE_DEBUG is set to "true"
 ###/doc
 function out:debug {
-	if [[ "$MODE_DEBUG" = true ]]; then
-		echo "${CBBLU}DEBUG: $CBLU$*$CDEF" 1>&2
-	fi
+    if [[ "$MODE_DEBUG" = true ]]; then
+        echo "${CBBLU}DEBUG: $CBLU$*$CDEF" 1>&2
+    fi
 }
 
 ### out:debug:fork [MARKER] Usage:bbuild
@@ -239,34 +313,34 @@ function out:debug {
 #
 ###/doc
 function out:debug:fork {
-	if [[ "$MODE_DEBUG" = true ]]; then
-		local MARKER="${1:-DEBUG: }"; shift || :
+    if [[ "$MODE_DEBUG" = true ]]; then
+        local MARKER="${1:-DEBUG: }"; shift || :
 
-		cat - | sed -r "s/^/$MARKER/" | tee -a /dev/stderr
-	else
-		cat -
-	fi
+        cat - | sed -r "s/^/$MARKER/" | tee -a /dev/stderr
+    else
+        cat -
+    fi
 }
 
 ### out:info MESSAGE Usage:bbuild
 # print a green informational message to stderr
 ###/doc
 function out:info {
-	echo "$CGRN$*$CDEF" 1>&2
+    echo "$CGRN$*$CDEF" 1>&2
 }
 
 ### out:warn MESSAGE Usage:bbuild
 # print a yellow warning message to stderr
 ###/doc
 function out:warn {
-	echo "${CBYEL}WARN: $CYEL$*$CDEF" 1>&2
+    echo "${CBYEL}WARN: $CYEL$*$CDEF" 1>&2
 }
 
 ### out:defer MESSAGE Usage:bbuild
 # Store a message in the output buffer for later use
 ###/doc
 function out:defer {
-	OUTPUT_BUFFER_defer[${#OUTPUT_BUFFER_defer[@]}]="$*"
+    OUTPUT_BUFFER_defer[${#OUTPUT_BUFFER_defer[@]}]="$*"
 }
 
 ### out:flush HANDLER ... Usage:bbuild
@@ -285,15 +359,15 @@ function out:defer {
 #
 ###/doc
 function out:flush {
-	[[ -n "$*" ]] || out:fail "Did not provide a command for buffered output\n\n${OUTPUT_BUFFER_defer[*]}"
+    [[ -n "$*" ]] || out:fail "Did not provide a command for buffered output\n\n${OUTPUT_BUFFER_defer[*]}"
 
-	[[ "${#OUTPUT_BUFFER_defer[@]}" -gt 1 ]] || return 0
+    [[ "${#OUTPUT_BUFFER_defer[@]}" -gt 1 ]] || return 0
 
-	for buffer_line in "${OUTPUT_BUFFER_defer[@]:1}"; do
-		"$@" "$buffer_line"
-	done
+    for buffer_line in "${OUTPUT_BUFFER_defer[@]:1}"; do
+        "$@" "$buffer_line"
+    done
 
-	out:buffer_initialize
+    out:buffer_initialize
 }
 
 ### out:fail [CODE] MESSAGE Usage:bbuild
@@ -302,15 +376,15 @@ function out:flush {
 # if no code is specified, error code 127 is used
 ###/doc
 function out:fail {
-	local ERCODE=127
-	local numpat='^[0-9]+$'
+    local ERCODE=127
+    local numpat='^[0-9]+$'
 
-	if [[ "$1" =~ $numpat ]]; then
-		ERCODE="$1"; shift || :
-	fi
+    if [[ "$1" =~ $numpat ]]; then
+        ERCODE="$1"; shift || :
+    fi
 
-	echo "${CBRED}ERROR FAIL: $CRED$*$CDEF" 1>&2
-	exit $ERCODE
+    echo "${CBRED}ERROR FAIL: $CRED$*$CDEF" 1>&2
+    exit $ERCODE
 }
 
 ### out:error MESSAGE Usage:bbuild
@@ -319,7 +393,7 @@ function out:fail {
 # unlike out:fail, does not cause script exit
 ###/doc
 function out:error {
-	echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
+    echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
 
 ### out:dump Usage:bbuild
@@ -333,10 +407,10 @@ function out:error {
 ###/doc
 
 function out:dump {
-	echo -n "${CBPUR}$*" 1>&2
-	echo -n "$CPUR" 1>&2
-	cat - 1>&2
-	echo -n "$CDEF" 1>&2
+    echo -n "${CBPUR}$*" 1>&2
+    echo -n "$CPUR" 1>&2
+    cat - 1>&2
+    echo -n "$CDEF" 1>&2
 }
 
 ### out:break MESSAGE Usage:bbuild
@@ -355,17 +429,17 @@ function out:dump {
 ###/doc
 
 function out:break {
-	[[ "$MODE_DEBUG" = true ]] || return 0
+    [[ "$MODE_DEBUG" = true ]] || return 0
 
-	echo -en "${CRED}BREAKPOINT: $* >$CDEF " >&2
-	read
-	if [[ "$REPLY" =~ quit|exit|stop ]]; then
-		out:fail "ABORT"
-	fi
+    echo -en "${CRED}BREAKPOINT: $* >$CDEF " >&2
+    read
+    if [[ "$REPLY" =~ quit|exit|stop ]]; then
+        out:fail "ABORT"
+    fi
 }
 
 if [[ "$MODE_DEBUG_VERBOSE" = true ]]; then
-	set -x
+    set -x
 fi
 
 autohelp:check "$@"
@@ -377,25 +451,25 @@ ARG1=
 FILTER=
 
 while [[ -n "$@" ]]; do
-	ARG=$1 ; shift
-	case "$ARG" in
-	-u|--update)
-		DOUPDATE=yes
-		;;
-	--debug)
-		DEBUGMODE=yes
-		;;
-	-f|--filter)
-		FILTER="$(echo $1|sed -r "s/[\"']//g")" ; shift
-		;;
-	-h|--help)
-		printhelp
-		exit 0
-		;;
-	*)
-		ARGS="$ARGS $ARG"
-		;;
-	esac
+    ARG=$1 ; shift
+    case "$ARG" in
+    -u|--update)
+        DOUPDATE=yes
+        ;;
+    --debug)
+        DEBUGMODE=yes
+        ;;
+    -f|--filter)
+        FILTER="$(echo $1|sed -r "s/[\"']//g")" ; shift
+        ;;
+    -h|--help)
+        printhelp
+        exit 0
+        ;;
+    *)
+        ARGS="$ARGS $ARG"
+        ;;
+    esac
 done
 
 function firstarg { ARG1="$1" ; }
@@ -406,56 +480,56 @@ out:debug "ARG1=$ARG1"
 function docpan { echo "m $ARG1" | cpan ; }
 
 if [[ -z "$ARGS" ]]; then
-	out:fail "You must supply at least one package name to search."
+    out:fail "You must supply at least one package name to search."
 fi
 
 SFILE="/tmp/searchfile_$(date "+%F%T"|md5sum|cut -d' ' -f1)"
 touch "$SFILE" || out:fail "Cannot create temp file"
 
 function searchit {
-	out:info "Searching $1"
-	out:debug "$@"
-	local SOURCE=$1 ; shift
-	echo -e "\n[1;34m\t$SOURCE\n=============[0m" >> "$SFILE"
-	if [[ -n "$FILTER" ]]; then
-		$@ | grep -P "$FILTER" >> "$SFILE"
-	else
-		$@ >> "$SFILE"
-	fi
+    out:info "Searching $1"
+    out:debug "$@"
+    local SOURCE=$1 ; shift
+    echo -e "\n[1;34m\t$SOURCE\n=============[0m" >> "$SFILE"
+    if [[ -n "$FILTER" ]]; then
+        $@ | grep -P "$FILTER" >> "$SFILE"
+    else
+        $@ >> "$SFILE"
+    fi
 }
 
 function doupdate {
-	if [[ "$DOUPDATE" = yes ]]; then
-		sudo $@
-	fi
+    if [[ "$DOUPDATE" = yes ]]; then
+        sudo $@
+    fi
 }
 
 if [[ -f /usr/local/bin/paf ]]; then # support our own wrapper :-)
-	doupdate paf -u
-	searchit paf paf "$ARGS"
+    doupdate paf -u
+    searchit paf paf "$ARGS"
 elif [[ -f /usr/bin/apt-cache ]]; then
-	doupdate apt-get update
-	searchit APT apt-cache search "$ARGS"
+    doupdate apt-get update
+    searchit APT apt-cache search "$ARGS"
 elif [[ -f /usr/bin/dnf ]]; then
-	searchit dnf dnf search "$ARGS"
-	searchit dnfgroup dnf groupsearch "$ARGS"
+    searchit dnf dnf search "$ARGS"
+    searchit dnfgroup dnf groupsearch "$ARGS"
 elif [[ -f /usr/bin/yum ]]; then
-	searchit yum yum search "$ARGS"
-	searchit yumgroup yum groupsearch "$ARGS"
+    searchit yum yum search "$ARGS"
+    searchit yumgroup yum groupsearch "$ARGS"
 elif [[ -f /usr/bin/zypper ]]; then
-	searchit zypper zypper search "$ARGS"
+    searchit zypper zypper search "$ARGS"
 elif [[ -f /usr/bin/yaourt ]]; then
-	doupdate yaourt -Sy
-	searchit yaourt yaourt -Qs "$ARGS"
+    doupdate yaourt -Sy
+    searchit yaourt yaourt -Qs "$ARGS"
 elif [[ -f /usr/bin/pacman ]]; then
-	doupdate pacman -Sy
-	searchit pacman pacman -Qs "$ARGS"
+    doupdate pacman -Sy
+    searchit pacman pacman -Qs "$ARGS"
 elif [[ -f /usr/bin/emerge ]]; then
-	doupdate emerge sync
-	searchit emerge emerge -s "$ARG1"
+    doupdate emerge sync
+    searchit emerge emerge -s "$ARG1"
 elif [[ -f /usr/bin/tazpkg ]]; then
-	doupdate tazpkg recharge
-	searchit tazpkg tazpkg search "$ARG1"
+    doupdate tazpkg recharge
+    searchit tazpkg tazpkg search "$ARG1"
 fi
 
 # do these need explicit updates?
@@ -468,35 +542,35 @@ if [[ -f /usr/bin/pear ]]; then searchit pear pear search "$ARGS" ; fi
 # package maangement locally
 
 function findpkg {
-	EXT=.$1 ; shift
-	locate "$ARG1" | egrep "^${HOME}/.+$EXT\$"
+    EXT=.$1 ; shift
+    locate "$ARG1" | egrep "^${HOME}/.+$EXT\$"
 }
 
 function findfile {
-	SIGFILE=$1 ; shift
-	locate "$ARG1" | egrep "^${HOME}/.+/$SIGFILE\$"
+    SIGFILE=$1 ; shift
+    locate "$ARG1" | egrep "^${HOME}/.+/$SIGFILE\$"
 }
 
 if [[ -f /usr/bin/dpkg ]]; then
-	searchit "Local deb files" findpkg ".deb"
+    searchit "Local deb files" findpkg ".deb"
 elif [[ -f /usr/bin/yum ]] || [[ -f /usr/bin/dpkg ]]; then
-	searchit "Local RPM files" findpkg ".rpm"
+    searchit "Local RPM files" findpkg ".rpm"
 fi
 
 # ================
 # some more outlandish searches
 
 function searchweb {
-	local QUERY="$(echo $1|base64 -di)" ; shift
-	local PATTERN="$(echo $1|base64 -di)" ; shift
-	elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=$QUERY" | grep -P "$PATTERN" -o|sort|uniq
+    local QUERY="$(echo $1|base64 -di)" ; shift
+    local PATTERN="$(echo $1|base64 -di)" ; shift
+    elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=$QUERY" | grep -P "$PATTERN" -o|sort|uniq
 }
 
 if [[ -f /usr/bin/elinks ]]; then
-	# ---- Github
-	searchit github searchweb $(echo "github%20\"$ARG1\""|base64 -w 0) $(echo "https://github.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9._-]+"|base64 -w 0)
+    # ---- Github
+    searchit github searchweb $(echo "github%20\"$ARG1\""|base64 -w 0) $(echo "https://github.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9._-]+"|base64 -w 0)
 else
-	out:warn "We need elinks for searching the web"
+    out:warn "We need elinks for searching the web"
 fi
 
 # ===============

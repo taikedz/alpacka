@@ -12,14 +12,14 @@ set -euo pipefail
 #
 #Some package managers support independent activites to run before and after main actions.
 #
-# 	-u
-# 		update the package database
+#     -u
+#         update the package database
 #
-# 	-c
-# 		clean up interim packages and cache
+#     -c
+#         clean up interim packages and cache
 #
-# 	-y
-# 		assume yes
+#     -y
+#         assume yes
 #
 #### ACTIONS
 #
@@ -37,27 +37,27 @@ set -euo pipefail
 #
 #Search for keywords:
 #
-#	paf KEYWORDS ...
+#    paf KEYWORDS ...
 #
 # Show info on each package
 #
-#	paf -s PACKAGES ...
+#    paf -s PACKAGES ...
 #
 #Install
 #
-#	paf -i PACKAGES ...
+#    paf -i PACKAGES ...
 #
 #Remove
-# 	
-# 	paf -r PACKAGES ...
+#     
+#     paf -r PACKAGES ...
 #
 #Upgrade
 #
-# 	paf -g
+#     paf -g
 #
 #List installed packages
 #
-# 	paf -l
+#     paf -l
 #
 #
 #
@@ -65,15 +65,15 @@ set -euo pipefail
 #
 #The following updates the package database and installs Apache and PHP, assuming `yes`
 #
-#	paf -u -i apache2 php libapache2-mod-php -y
+#    paf -u -i apache2 php libapache2-mod-php -y
 #
 #The following updates the package database, runs an upgrade, and cleans up afterwards. Since `-y` is not specified, the user will be prompted.
 #
-# 	paf -u -g -c
+#     paf -u -g -c
 #
 # (In Debian, the equivalent command would be:
 #
-# 	sudo apt-get update && sudo apt-get upgrade && sudo apt-get autoclean && sudo apt-get autoremove)
+#     sudo apt-get update && sudo apt-get upgrade && sudo apt-get autoclean && sudo apt-get autoremove)
 #
 #Supported package managers
 #
@@ -86,81 +86,86 @@ set -euo pipefail
 #%include autohelp.sh bincheck.sh args.sh runmain.sh out.sh
 
 paf:main() {
-	PAF_activities=(:)
-	PAF_packages=(:)
-	PAF_sources=(:)
-	PAF_action=search
-	PAF_assume=
+    PAF_activities=(:)
+    PAF_packages=(:)
+    PAF_sources=(:)
+    PAF_action=search
+    PAF_assume=
 
-	autohelp:check "$@"
-	if [[ -z "$*" ]]; then
-		out:warn "Nothing to do. Try --help ."
-		exit 0
-	fi
+    autohelp:check "$@"
+    if [[ -z "$*" ]]; then
+        out:warn "Nothing to do. Try --help ."
+        exit 0
+    fi
 
-	paf:get_package_manager
-	paf:parse_arguments "$@"
+    paf:get_package_manager
+    paf:parse_arguments "$@"
 
-	paf:run_activity update
+    paf:run_activity update
 
-	if [[ -n "${PAF_action:-}" ]]; then
-		"$PAF_pm:$PAF_action" "$@"
-	fi
+    if [[ -n "${PAF_action:-}" ]]; then
+        # We pass "$@" in case it is needed
+        #  but most actions just access ${PAF_packages[@]} directly
+        "$PAF_pm:$PAF_action" "$@"
+    fi
 
-	paf:run_activity clean
+    paf:run_activity clean
 }
 
 paf:get_package_manager() {
-	local drivers=(apt-get:dpkg dnf:rpm yum:rpm tazpkg: apk: ) # zypper pacman)
-	local drive
+    local drivers=(apt-get:dpkg dnf:rpm yum:rpm tazpkg: apk: ) # zypper pacman)
+    local drive
 
-	for drive in "${drivers[@]}"; do
-		PAF_pm="${drive%:*}" # general package manager e.g. apt
-		PAF_bpm="${drive#*:}" # base package manager e.g. dpkg
+    for drive in "${drivers[@]}"; do
+        PAF_pm="${drive%:*}" # general package manager e.g. apt
+        PAF_bpm="${drive#*:}" # base package manager e.g. dpkg
 
-		bincheck:has "$PAF_pm" || continue
-		return
-	done
+        bincheck:has "$PAF_pm" || continue
+        return
+    done
 
-	out:fail "You distro is unsupported"
+    out:fail "You distro is unsupported"
 }
 
 paf:add_activity() {
-	PAF_activities[${#PAF_activities[@]}]="$1"
+    PAF_activities[${#PAF_activities[@]}]="$1"
 }
 
 paf:run_activity() {
-	local activity="$1"
-	if [[ "${PAF_activities[*]:-}" =~ "$activity" ]]; then
-		"$PAF_pm:$activity"
-	fi
+    local activity="$1"
+    if [[ "${PAF_activities[*]:-}" =~ "$activity" ]]; then
+        "$PAF_pm:$activity"
+    fi
 }
 
 paf:parse_arguments() {
-	for arg in "$@"; do
-		case "$arg" in
-		-u)	paf:add_activity "update" ;;
+    for arg in "$@"; do
+        case "$arg" in
+        -u) paf:add_activity "update" ;;
 
-		-c)	paf:add_activity "clean"
-			PAF_action="" # cleaning is both a post-action activity, and an action in itself
-			;;
+        -c)
+            paf:add_activity "clean"
+            if [[ "$PAF_action" = search ]]; then
+                PAF_action=""
+            fi
+            ;;
 
-		-g*)	PAF_action="upgrade" ;;
-		-i*)	PAF_action="install" ;;
-		-r*)	PAF_action="remove" ;;
-		-l*)	PAF_action="list" ;;
-		-s*)	PAF_action="show" ;;
+        -g*)    PAF_action="upgrade" ;;
+        -i*)    PAF_action="install" ;;
+        -r*)    PAF_action="remove" ;;
+        -l*)    PAF_action="list" ;;
+        -s*)    PAF_action="show" ;;
 
-		-y)	PAF_assume="yes" ;;
-		-n)	PAF_assume="no" ;;
+        -y) PAF_assume="yes" ;;
+        -n) PAF_assume="no" ;;
 
-		*)	PAF_packages[${#PAF_packages[@]}]="$arg" ;;
-		esac
-	done
+        *)  PAF_packages[${#PAF_packages[@]}]="$arg" ;;
+        esac
+    done
 
-	# blat the holders
-	PAF_activities=("${PAF_activities[@]:1}")
-	PAF_packages=("${PAF_packages[@]:1}")
+    # blat the holders
+    PAF_activities=("${PAF_activities[@]:1}")
+    PAF_packages=("${PAF_packages[@]:1}")
 }
 
 #%include apt.sh dnf.sh tazpkg.sh apk.sh
