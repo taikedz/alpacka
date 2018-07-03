@@ -42,11 +42,11 @@ dnf:search() {
     dnf search "${PAF_packages[@]:-}" | less
 }
 
-yum:update() { dnf:update ; }
-yum:clean() { dnf:clean ; }
-yum:install() { dnf:install ; }
-yum:remove() { dnf:remove ; }
-yum:list() { dnf:list ; }
-yum:show() { dnf:show ; }
-yum:upgrade() { dnf:upgrade ; }
-yum:search() { dnf:search ; }
+yum:update() { dnf:update "$@" ; }
+yum:clean() { dnf:clean "$@" ; }
+yum:install() { dnf:install "$@" ; }
+yum:remove() { dnf:remove "$@" ; }
+yum:list() { dnf:list "$@" ; }
+yum:show() { dnf:show "$@" ; }
+yum:upgrade() { dnf:upgrade "$@" ; }
+yum:search() { dnf:search "$@" ; }

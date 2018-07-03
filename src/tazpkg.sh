@@ -1,3 +1,13 @@
+### Tazpkg-specific options Usage:help-tazpkg
+#
+# Search:
+#
+# `-s` will perform an AND search, returning all packages with all the search terms
+#
+# `-so` will perform an or search, returning all packages with at least one of the search terms
+#
+###/doc
+
 tazpkg:update() {
     sudo tazpkg recharge
 }

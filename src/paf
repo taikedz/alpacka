@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -67,7 +67,7 @@ set -euo pipefail
 #
 #    paf -u -i apache2 php libapache2-mod-php -y
 #
-#The following updates the package database, runs an upgrade, and cleans up afterwards. Since `-y` is not specified, the user will be prompted.
+#The following updates the package database, runs the basic upgrade, and cleans up afterwards. Since `-y` is not specified, the user will be prompted.
 #
 #     paf -u -g -c
 #
@@ -92,13 +92,14 @@ paf:main() {
     PAF_action=search
     PAF_assume=
 
-    autohelp:check "$@"
+    paf:get_package_manager
+
+    paf:help "$@"
     if [[ -z "$*" ]]; then
         out:warn "Nothing to do. Try --help ."
         exit 0
     fi
 
-    paf:get_package_manager
     paf:parse_arguments "$@"
 
     paf:run_activity update
@@ -110,6 +111,14 @@ paf:main() {
     fi
 
     paf:run_activity clean
+}
+
+paf:help() {
+    if [[ "$*" =~ --help ]]; then
+        autohelp:print help "$0"
+        autohelp:print "help-${PAF_pm}" "$0"
+        exit 0
+    fi
 }
 
 paf:get_package_manager() {

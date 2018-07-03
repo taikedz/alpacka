@@ -1,3 +1,9 @@
+### %PM%-specific options Usage:help-%PM%
+#
+# Document special options for %PM%
+#
+###/doc
+
 %PM%:assume() {
     if [[ "$PAF_assume" = yes ]]; then
         echo "-y"

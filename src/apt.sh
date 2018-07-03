@@ -1,3 +1,13 @@
+### APT-specific options Usage:help-apt-get
+#
+# APT specific options include
+#
+# `-gg` - perform a dist-upgrade
+#
+# `-gR` - perform a release upgrade
+#
+###/doc
+
 apt-get:assume() {
     if [[ "$PAF_assume" = yes ]]; then
         echo "-y"
