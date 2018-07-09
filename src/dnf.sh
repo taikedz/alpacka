@@ -39,7 +39,7 @@ dnf:upgrade() {
 }
 
 dnf:search() {
-    dnf search "${PAF_packages[@]:-}" | less
+    "$PAF_pm" search "${PAF_packages[@]:-}" | less
 }
 
 yum:update() { dnf:update "$@" ; }
