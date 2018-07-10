@@ -11,19 +11,19 @@
 }
 
 %PM%:update() {
-    sudo %PM% update
+    paf:sudo %PM% update
 }
 
 %PM%:clean() {
-    sudo %PM% $(%PM%:assume) clean
+    paf:sudo %PM% $(%PM%:assume) clean
 }
 
 %PM%:install() {
-    sudo %PM% install $(%PM%:assume) "${PAF_packages[@]:-}"
+    paf:sudo %PM% install $(%PM%:assume) "${PAF_packages[@]:-}"
 }
 
 %PM%:remove() {
-    sudo %PM% remove $(%PM%:assume) "${PAF_packages[@]:-}"
+    paf:sudo %PM% remove $(%PM%:assume) "${PAF_packages[@]:-}"
 }
 
 %PM%:list() {
@@ -39,7 +39,7 @@
 }
 
 %PM%:upgrade() {
-    sudo %PM% $(%PM%:assume) upgrade
+    paf:sudo %PM% $(%PM%:assume) upgrade
 }
 
 %PM%:search() {

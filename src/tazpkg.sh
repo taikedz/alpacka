@@ -9,25 +9,25 @@
 ###/doc
 
 tazpkg:update() {
-    sudo tazpkg recharge
+    paf:sudo tazpkg recharge
 }
 
 tazpkg:clean() {
-    sudo tazpkg clean-cache
-    sudo tazpkg autoremove
+    paf:sudo tazpkg clean-cache
+    paf:sudo tazpkg autoremove
 }
 
 tazpkg:install() {
     local pkg
     for pkg in "${PAF_packages[@]:-}"; do
-        sudo tazpkg -gi "$pkg"
+        paf:sudo tazpkg -gi "$pkg"
     done
 }
 
 tazpkg:remove() {
     local pkg
     for pkg in "${PAF_packages[@]:-}"; do
-        sudo tazpkg remove "$pkg"
+        paf:sudo tazpkg remove "$pkg"
     done
 }
 
@@ -44,7 +44,7 @@ tazpkg:show() {
 }
 
 tazpkg:upgrade() {
-    sudo tazpkg upgrade
+    paf:sudo tazpkg upgrade
 }
 
 tazpkg:search:and() {

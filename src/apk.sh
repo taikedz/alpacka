@@ -1,17 +1,17 @@
 apk:update() {
-    sudo apk update
+    paf:sudo apk update
 }
 
 apk:clean() {
-    sudo apk clean
+    paf:sudo apk clean
 }
 
 apk:install() {
-    sudo apk add "${PAF_packages[@]:-}"
+    paf:sudo apk add "${PAF_packages[@]:-}"
 }
 
 apk:remove() {
-    sudo apk del "${PAF_packages[@]:-}"
+    paf:sudo apk del "${PAF_packages[@]:-}"
 }
 
 apk:list() {
@@ -27,7 +27,7 @@ apk:show() {
 }
 
 apk:upgrade() {
-    sudo apk upgrade
+    paf:sudo apk upgrade
 }
 
 apk:search() {

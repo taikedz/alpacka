@@ -9,20 +9,20 @@ dnf:update() {
 }
 
 dnf:clean() {
-    sudo "$PAF_pm" clean
-    sudo "$PAF_pm" autoremove
+    paf:sudo "$PAF_pm" clean
+    paf:sudo "$PAF_pm" autoremove
 }
 
 dnf:install() {
-    sudo "$PAF_pm" install $(dnf:assume) "${PAF_packages[@]:-}"
+    paf:sudo "$PAF_pm" install $(dnf:assume) "${PAF_packages[@]:-}"
 }
 
 dnf:remove() {
-    sudo "$PAF_pm" remove $(dnf:assume) "${PAF_packages[@]:-}"
+    paf:sudo "$PAF_pm" remove $(dnf:assume) "${PAF_packages[@]:-}"
 }
 
 dnf:list() {
-    sudo "$PAF_pm" list --installed | less
+    paf:sudo "$PAF_pm" list --installed | less
     return 0
 }
 
@@ -35,7 +35,7 @@ dnf:show() {
 }
 
 dnf:upgrade() {
-    sudo "$PAF_pm" upgrade
+    paf:sudo "$PAF_pm" upgrade
 }
 
 dnf:search() {

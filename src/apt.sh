@@ -15,20 +15,20 @@ apt-get:assume() {
 }
 
 apt-get:update() {
-    sudo apt-get update
+    paf:sudo apt-get update
 }
 
 apt-get:clean() {
-    sudo apt-get $(apt-get:assume) autoclean
-    sudo apt-get $(apt-get:assume) autoremove
+    paf:sudo apt-get $(apt-get:assume) autoclean
+    paf:sudo apt-get $(apt-get:assume) autoremove
 }
 
 apt-get:install() {
-    sudo apt-get install $(apt-get:assume) "${PAF_packages[@]:-}"
+    paf:sudo apt-get install $(apt-get:assume) "${PAF_packages[@]:-}"
 }
 
 apt-get:remove() {
-    sudo apt-get remove $(apt-get:assume) "${PAF_packages[@]:-}"
+    paf:sudo apt-get remove $(apt-get:assume) "${PAF_packages[@]:-}"
 }
 
 apt-get:list() {
@@ -45,11 +45,11 @@ apt-get:show() {
 
 apt-get:upgrade() {
     if args:has "-gg" "$@" ; then
-        sudo apt-get $(apt-get:assume) dist-upgrade
+        paf:sudo apt-get $(apt-get:assume) dist-upgrade
     elif args:has "-gR" "$@"; then
-        sudo do-release-upgrade $(apt-get:assume)
+        paf:sudo do-release-upgrade $(apt-get:assume)
     else
-        sudo apt-get $(apt-get:assume) upgrade
+        paf:sudo apt-get $(apt-get:assume) upgrade
     fi
 }
 

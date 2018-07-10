@@ -121,8 +121,19 @@ paf:help() {
     fi
 }
 
+paf:sudo() {
+    if bincheck:has sudo; then
+        sudo "$@"
+        return "$?"
+    else
+        [[ "$UID" = 0 ]] || out:fail "No sudo, and you are not root"
+
+        "$@"
+    fi
+}
+
 paf:get_package_manager() {
-    local drivers=(apt-get:dpkg dnf:rpm yum:rpm tazpkg: apk: ) # zypper pacman)
+    local drivers=(apt-get:dpkg dnf:rpm yum:rpm tazpkg: apk: zypper:rpm ) # pacman)
     local drive
 
     for drive in "${drivers[@]}"; do
@@ -150,7 +161,11 @@ paf:run_activity() {
 paf:parse_arguments() {
     for arg in "$@"; do
         case "$arg" in
-        -u) paf:add_activity "update" ;;
+        -u) paf:add_activity "update"
+            if [[ "$PAF_action" = search ]]; then
+                PAF_action=""
+            fi
+            ;;
 
         -c)
             paf:add_activity "clean"
@@ -177,7 +192,7 @@ paf:parse_arguments() {
     PAF_packages=("${PAF_packages[@]:1}")
 }
 
-#%include apt.sh dnf.sh tazpkg.sh apk.sh
+#%include apt.sh dnf.sh tazpkg.sh apk.sh zypper.sh
 # zypper.sh pacman.sh emerge.sh # To be implemented
 
 runmain paf paf:main "$@"

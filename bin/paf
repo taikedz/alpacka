@@ -714,8 +714,19 @@ paf:help() {
     fi
 }
 
+paf:sudo() {
+    if bincheck:has sudo; then
+        sudo "$@"
+        return "$?"
+    else
+        [[ "$UID" = 0 ]] || out:fail "No sudo, and you are not root"
+
+        "$@"
+    fi
+}
+
 paf:get_package_manager() {
-    local drivers=(apt-get:dpkg dnf:rpm yum:rpm tazpkg: apk: ) # zypper pacman)
+    local drivers=(apt-get:dpkg dnf:rpm yum:rpm tazpkg: apk: zypper:rpm ) # pacman)
     local drive
 
     for drive in "${drivers[@]}"; do
@@ -743,7 +754,11 @@ paf:run_activity() {
 paf:parse_arguments() {
     for arg in "$@"; do
         case "$arg" in
-        -u) paf:add_activity "update" ;;
+        -u) paf:add_activity "update"
+            if [[ "$PAF_action" = search ]]; then
+                PAF_action=""
+            fi
+            ;;
 
         -c)
             paf:add_activity "clean"
@@ -787,20 +802,20 @@ apt-get:assume() {
 }
 
 apt-get:update() {
-    sudo apt-get update
+    paf:sudo apt-get update
 }
 
 apt-get:clean() {
-    sudo apt-get $(apt-get:assume) autoclean
-    sudo apt-get $(apt-get:assume) autoremove
+    paf:sudo apt-get $(apt-get:assume) autoclean
+    paf:sudo apt-get $(apt-get:assume) autoremove
 }
 
 apt-get:install() {
-    sudo apt-get install $(apt-get:assume) "${PAF_packages[@]:-}"
+    paf:sudo apt-get install $(apt-get:assume) "${PAF_packages[@]:-}"
 }
 
 apt-get:remove() {
-    sudo apt-get remove $(apt-get:assume) "${PAF_packages[@]:-}"
+    paf:sudo apt-get remove $(apt-get:assume) "${PAF_packages[@]:-}"
 }
 
 apt-get:list() {
@@ -817,11 +832,11 @@ apt-get:show() {
 
 apt-get:upgrade() {
     if args:has "-gg" "$@" ; then
-        sudo apt-get $(apt-get:assume) dist-upgrade
+        paf:sudo apt-get $(apt-get:assume) dist-upgrade
     elif args:has "-gR" "$@"; then
-        sudo do-release-upgrade $(apt-get:assume)
+        paf:sudo do-release-upgrade $(apt-get:assume)
     else
-        sudo apt-get $(apt-get:assume) upgrade
+        paf:sudo apt-get $(apt-get:assume) upgrade
     fi
 }
 
@@ -839,20 +854,20 @@ dnf:update() {
 }
 
 dnf:clean() {
-    sudo "$PAF_pm" clean
-    sudo "$PAF_pm" autoremove
+    paf:sudo "$PAF_pm" clean
+    paf:sudo "$PAF_pm" autoremove
 }
 
 dnf:install() {
-    sudo "$PAF_pm" install $(dnf:assume) "${PAF_packages[@]:-}"
+    paf:sudo "$PAF_pm" install $(dnf:assume) "${PAF_packages[@]:-}"
 }
 
 dnf:remove() {
-    sudo "$PAF_pm" remove $(dnf:assume) "${PAF_packages[@]:-}"
+    paf:sudo "$PAF_pm" remove $(dnf:assume) "${PAF_packages[@]:-}"
 }
 
 dnf:list() {
-    sudo "$PAF_pm" list --installed | less
+    paf:sudo "$PAF_pm" list --installed | less
     return 0
 }
 
@@ -865,7 +880,7 @@ dnf:show() {
 }
 
 dnf:upgrade() {
-    sudo "$PAF_pm" upgrade
+    paf:sudo "$PAF_pm" upgrade
 }
 
 dnf:search() {
@@ -891,25 +906,25 @@ yum:search() { dnf:search "$@" ; }
 ###/doc
 
 tazpkg:update() {
-    sudo tazpkg recharge
+    paf:sudo tazpkg recharge
 }
 
 tazpkg:clean() {
-    sudo tazpkg clean-cache
-    sudo tazpkg autoremove
+    paf:sudo tazpkg clean-cache
+    paf:sudo tazpkg autoremove
 }
 
 tazpkg:install() {
     local pkg
     for pkg in "${PAF_packages[@]:-}"; do
-        sudo tazpkg -gi "$pkg"
+        paf:sudo tazpkg -gi "$pkg"
     done
 }
 
 tazpkg:remove() {
     local pkg
     for pkg in "${PAF_packages[@]:-}"; do
-        sudo tazpkg remove "$pkg"
+        paf:sudo tazpkg remove "$pkg"
     done
 }
 
@@ -926,7 +941,7 @@ tazpkg:show() {
 }
 
 tazpkg:upgrade() {
-    sudo tazpkg upgrade
+    paf:sudo tazpkg upgrade
 }
 
 tazpkg:search:and() {
@@ -959,19 +974,19 @@ tazpkg:search() {
     fi
 }
 apk:update() {
-    sudo apk update
+    paf:sudo apk update
 }
 
 apk:clean() {
-    sudo apk clean
+    paf:sudo apk clean
 }
 
 apk:install() {
-    sudo apk add "${PAF_packages[@]:-}"
+    paf:sudo apk add "${PAF_packages[@]:-}"
 }
 
 apk:remove() {
-    sudo apk del "${PAF_packages[@]:-}"
+    paf:sudo apk del "${PAF_packages[@]:-}"
 }
 
 apk:list() {
@@ -987,11 +1002,66 @@ apk:show() {
 }
 
 apk:upgrade() {
-    sudo apk upgrade
+    paf:sudo apk upgrade
 }
 
 apk:search() {
     apk search "${PAF_packages[@]:-}" | less
+}
+### zypper-specific options Usage:help-zypper
+#
+# -g
+#   Upgrade packages
+#
+# -gR
+#   Distribution upgrade
+#
+###/doc
+
+zypper:assume() {
+    if [[ "$PAF_assume" = yes ]]; then
+        echo "-y"
+    fi
+}
+
+zypper:update() {
+    :
+}
+
+zypper:clean() {
+    paf:sudo zypper $(zypper:assume) clean
+}
+
+zypper:install() {
+    paf:sudo zypper install $(zypper:assume) "${PAF_packages[@]:-}"
+}
+
+zypper:remove() {
+    paf:sudo zypper remove $(zypper:assume) "${PAF_packages[@]:-}"
+}
+
+zypper:list() {
+    zypper se --installed-only | grep -v -e 'patch\s*$' | less || return 0
+}
+
+zypper:show() {
+    local package
+
+    for package in "${PAF_packages[@]:-}"; do
+        zypper info "$package" | less
+    done
+}
+
+zypper:upgrade() {
+    if args:has "-gR" "$@"; then
+        paf:sudo zypper $(zypper:assume) dist-upgrade
+    else
+        paf:sudo zypper $(zypper:assume) update
+    fi
+}
+
+zypper:search() {
+    zypper search "${PAF_packages[@]:-}" | less
 }
 # zypper.sh pacman.sh emerge.sh # To be implemented
 
