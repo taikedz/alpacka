@@ -36,9 +36,11 @@
 #
 # -e=MANAGER[,MANAGER...]
 #     Package managers to exclude, e.g. `-e=docpan,docker,github`
+#
+#     See pafs -e for a list of exclusion names
 ###/doc
 
-### Package manager shortnames Usage:help
+### Package manager shortnames Usage:groups
 #
 # Short names for package manager exclusion:
 #

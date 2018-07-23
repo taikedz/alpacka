@@ -40,9 +40,11 @@ set -u
 #
 # -e=MANAGER[,MANAGER...]
 #     Package managers to exclude, e.g. `-e=docpan,docker,github`
+#
+#     See pafs -e for a list of exclusion names
 ###/doc
 
-### Package manager shortnames Usage:help
+### Package manager shortnames Usage:groups
 #
 # Short names for package manager exclusion:
 #
@@ -653,6 +655,10 @@ while [[ -n "$@" ]]; do
         printhelp
         exit 0
         ;;
+    -e|-e=)
+        autohelp:print groups
+        exit 0
+        ;;
     -e=*)
         register_exclusions "${ARG#*=}"
         ;;
@@ -664,6 +670,8 @@ while [[ -n "$@" ]]; do
         ;;
     esac
 done
+
+[[ -n "${ARGS[*]+ARGS[*]}" ]] || out:fail "No search term provided"
 
 ARG1="${ARGS[@]}"
 debug:print "ARG1=$ARG1"
@@ -729,7 +737,8 @@ if trypkg docker; then
     searchit Docker docker search "$ARG1"
 fi
 
-if is_not_excluded web && bincheck:has elinks; then
+is_not_excluded web && \
+if bincheck:has elinks; then
     URLARG1="$(python -c "import urllib as u; print(u.quote('$ARG1'))")"
     namepat="[a-zA-Z0-9_.-]+"
     twonames="$namepat/$namepat"
@@ -746,6 +755,7 @@ else
     out:warn "'elinks' is required for searching the web"
 fi
 
+
 # ===============
 # Local builds
 if is_not_excluded local; then
@@ -753,12 +763,9 @@ if is_not_excluded local; then
 
     # package maangement locally
 
-    if trypkg dpkg yum dnf; then
-        searchit "Local RPM files" findpkg ".rpm"
+    trypkg dpkg yum dnf && searchit "Local RPM files" findpkg ".rpm"
 
-    elif trypkg dpkg; then
-        searchit "Local deb files" findpkg ".deb"
-    fi
+    trypkg dpkg && searchit "Local deb files" findpkg ".deb"
 fi
 
 # ===========
