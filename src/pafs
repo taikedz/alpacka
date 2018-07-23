@@ -94,13 +94,14 @@ if is_not_excluded os; then
     fi
 fi
 
-# do these need explicit updates?
-trypkg pip && searchit pip pip search "$ARGS"
-trypkg gem && searchit gem gem search "$ARGS"
-trypkg npm && searchit npm npm search "$ARGS"
-trypkg docpan && searchit cpan docpan "$ARG1"
-trypkg pear && searchit pear pear search "$ARGS"
-trypkg cargo && searchit cargo cargo search "$ARGS"
+if is_not_excluded langs; then
+    trypkg pip && searchit pip pip search "$ARGS"
+    trypkg gem && searchit gem gem search "$ARGS"
+    trypkg npm && searchit npm npm search "$ARGS"
+    trypkg docpan && searchit cpan docpan "$ARG1"
+    trypkg pear && searchit pear pear search "$ARGS"
+    trypkg cargo && searchit cargo cargo search "$ARGS"
+fi
 
 # ================
 # some more outlandish searches
@@ -109,11 +110,19 @@ if trypkg docker; then
     searchit Docker docker search "$ARG1"
 fi
 
-if bincheck:has elinks; then
+if is_not_excluded web && bincheck:has elinks; then
     URLARG1="$(python -c "import urllib as u; print(u.quote('$ARG1'))")"
-    # ---- Github
+    namepat="[a-zA-Z0-9_.-]+"
+    twonames="$namepat/$namepat"
+
     is_not_excluded github && \
-        searchit github searchweb "github%20$URLARG1" "https://github.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9._-]+"
+        searchit github searchweb "github.com" "$URLARG1" "$twonames"
+
+    is_not_excluded gitlab && \
+        searchit gitlab searchweb "gitlab.com" "$URLARG1" "$twonames"
+
+    is_not_excluded vagrant && \
+        searchit vagrant searchweb "app.vagrantup.com" "$URLARG1" "$twonames"
 else
     out:warn "'elinks' is required for searching the web"
 fi

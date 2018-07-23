@@ -12,7 +12,7 @@ function register_exclusions {
 function searchit {
     local SOURCE="$1" ; shift
 
-    out:info "Searching $1"
+    out:info "Searching $SOURCE"
     debug:print "$*"
 
     echo -e "\n${CBBLU}\t$SOURCE\n=============${CDEF}" >> "$SFILE"
@@ -58,7 +58,8 @@ function trypkg {
 }
 
 function searchweb {
-    local QUERY="$1" ; shift
-    local PATTERN="$1" ; shift
-    elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=$QUERY" | grep -P "$PATTERN" -o|sort|uniq
+    local site="$1"; shift
+    local query="$1" ; shift
+    local pattern="$1" ; shift
+    elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=site:$site+$query" | grep -P "https://$site/$pattern" -o|sort|uniq
 }

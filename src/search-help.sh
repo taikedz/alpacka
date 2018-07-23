@@ -43,11 +43,15 @@
 # Short names for package manager exclusion:
 #
 #   os                    -- the operating system's package manager, such as apt, yum, pacman, etc
-#   pip, gem, npm, docpan
-#       pear, cargo       -- language package managers
+#   langs                 -- all language-specific package managers
+#     pip, gem, npm, docpan
+#     pear, cargo           -- language package managers
 #   local                 -- local files (.rpm, .deb, Makefile, install.sh)
-#   github                -- github.com
-#   docker                -- docker
+#   web                   -- all web searches
+#     github                -- Github repositories
+#     gitlab                -- Gitlab repositories
+#     vagrant               -- Vagrant boxes
+#   docker                -- Docker
 #
 # You can set names in your .bashrc to always ignore certain repositories, for example
 #
