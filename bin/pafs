@@ -721,6 +721,15 @@ if is_not_excluded os; then
     fi
 fi
 
+if is_not_excluded externals; then
+    trypkg snap && searchit snap snap find "$ARGS"
+
+    trypkg flatpak && {
+        doupdate flatpak update
+        searchit flatpak flatpak search "$ARGS"
+    }
+fi
+
 if is_not_excluded langs; then
     trypkg pip && searchit pip pip search "$ARGS"
     trypkg gem && searchit gem gem search "$ARGS"
