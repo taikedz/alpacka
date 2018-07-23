@@ -83,7 +83,7 @@ set -euo pipefail
 #
 ###/doc
 
-##bash-libs: autohelp.sh @ e4c5a615 (1.1)
+##bash-libs: autohelp.sh @ 266ad599 (after 1.1.4)
 
 ### autohelp:print [ SECTION [FILE] ] Usage:bbuild
 # Write your help as documentation comments in your script
@@ -194,7 +194,7 @@ autohelp:check() {
         exit 0
     fi
 }
-##bash-libs: bincheck.sh @ e4c5a615 (1.1)
+##bash-libs: bincheck.sh @ 266ad599 (after 1.1.4)
 
 ### bincheck:get COMMANDS ... Usage:bbuild
 #
@@ -266,9 +266,9 @@ bincheck:path() {
     
     } || echo "$binname"
 }
-##bash-libs: args.sh @ e4c5a615 (1.1)
+##bash-libs: args.sh @ 266ad599 (after 1.1.4)
 
-##bash-libs: patterns.sh @ e4c5a615 (1.1)
+##bash-libs: patterns.sh @ 266ad599 (after 1.1.4)
 
 ### Useful patterns Usage:bbuild
 #
@@ -431,7 +431,7 @@ function args:after {
 
     RETARR_ARGSAFTER=("$@")
 }
-##bash-libs: runmain.sh @ e4c5a615 (1.1)
+##bash-libs: runmain.sh @ 266ad599 (after 1.1.4)
 
 ### runmain SCRIPTNAME FUNCTION [ARGUMENTS ...] Usage:bbuild
 #
@@ -466,9 +466,9 @@ function runmain {
         "$funcall" "$@"
     fi
 }
-##bash-libs: out.sh @ e4c5a615 (1.1)
+##bash-libs: out.sh @ 266ad599 (after 1.1.4)
 
-##bash-libs: colours.sh @ e4c5a615 (1.1)
+##bash-libs: colours.sh @ 266ad599 (after 1.1.4)
 
 ### Colours for bash Usage:bbuild
 # A series of colour flags for use in outputs.
@@ -498,7 +498,7 @@ function runmain {
 #
 ###/doc
 
-##bash-libs: tty.sh @ e4c5a615 (1.1)
+##bash-libs: tty.sh @ 266ad599 (after 1.1.4)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]

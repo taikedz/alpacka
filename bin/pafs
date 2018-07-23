@@ -32,9 +32,28 @@
 # 
 # --help|-h
 #     Prints this help
+# 
+# --dump|-d
+#     Dump to stdout instead of through less
+#
+# -e=MANAGER[,MANAGER...]
+#     Package managers to exclude, e.g. `-e=docpan,docker,github`
 ###/doc
 
-##bash-libs: autohelp.sh @ e4c5a615 (1.1)
+### Package manager shortnames Usage:help
+#
+# Short names for package manager exclusion:
+#
+#   os                    -- the operating system's package manager, such as apt, yum, pacman, etc
+#   pip, gem, npm, docpan
+#       pear, cargo       -- language package managers
+#   local                 -- local files (.rpm, .deb, Makefile, install.sh)
+#   github                -- github.com
+#   docker                -- docker
+#
+###/doc
+
+##bash-libs: autohelp.sh @ 266ad599 (after 1.1.4)
 
 ### autohelp:print [ SECTION [FILE] ] Usage:bbuild
 # Write your help as documentation comments in your script
@@ -145,9 +164,9 @@ autohelp:check() {
         exit 0
     fi
 }
-##bash-libs: out.sh @ e4c5a615 (1.1)
+##bash-libs: out.sh @ 266ad599 (after 1.1.4)
 
-##bash-libs: colours.sh @ e4c5a615 (1.1)
+##bash-libs: colours.sh @ 266ad599 (after 1.1.4)
 
 ### Colours for bash Usage:bbuild
 # A series of colour flags for use in outputs.
@@ -177,7 +196,7 @@ autohelp:check() {
 #
 ###/doc
 
-##bash-libs: tty.sh @ e4c5a615 (1.1)
+##bash-libs: tty.sh @ 266ad599 (after 1.1.4)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -356,61 +375,201 @@ function out:fail {
 function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
+#%import colour.sh
 
-autohelp:check "$@"
+### Debug lib Usage:bbuild
+#
+# Debugging tools and functions.
+#
+# You need to activate debug mode using debug:activate command at the start of your script
+#  (or from whatever point you wish it to activate)
+#
+###/doc
 
-DOUPDATE=no
-DEBUGMODE=no
-ARGS=
-ARG1=
-FILTER=
+### Environment Variables Usage:bbuild
+#
+# DEBUG_mode : set to 'true' to enable debugging output
+#
+###/doc
 
-while [[ -n "$@" ]]; do
-    ARG=$1 ; shift
-    case "$ARG" in
-    -u|--update)
-        DOUPDATE=yes
-        ;;
-    --debug)
-        DEBUGMODE=yes
-        ;;
-    -f|--filter)
-        FILTER="$(echo $1|sed -r "s/[\"']//g")" ; shift
-        ;;
-    -h|--help)
-        printhelp
-        exit 0
-        ;;
-    *)
-        ARGS="$ARGS $ARG"
-        ;;
-    esac
-done
+: ${DEBUG_mode=false}
 
-function firstarg { ARG1="$1" ; }
-firstarg "$ARGS"
+### debug:mode [output | /output | verbose | /verbose] ... Usage:bbuild
+#
+# Activate debug output (`output`), or activate command tracing (`verbose`)
+#
+# Deactivate with the corresponding `/output` and `/verbose` options
+#
+###/doc
 
-out:debug "ARG1=$ARG1"
+function debug:mode() {
+    local mode_switch
+    for mode_switch in "$@"; do
+        case "$mode_switch" in
+        output)
+            DEBUG_mode=true ;;
+        /output)
+            DEBUG_mode=false ;;
+        verbose)
+            set -x ;;
+        /verbose)
+            set +x ;;
+        esac
+    done
+}
 
-function docpan { echo "m $ARG1" | cpan ; }
+### debug:print MESSAGE Usage:bbuild
+# print a blue debug message to stderr
+# only prints if DEBUG_mode is set to "true"
+###/doc
+function debug:print {
+    [[ "$DEBUG_mode" = true ]] || return 0
+    echo "${CBBLU}DEBUG: $CBLU$*$CDEF" 1>&2
+}
 
-if [[ -z "$ARGS" ]]; then
-    out:fail "You must supply at least one package name to search."
-fi
+### debug:dump [MARKER] Usage:bbuild
+#
+# Pipe the data coming through stdin to stdout (as if it weren't there at all)
+#
+# If debug mode is on, *also* write the same data to stderr, each line preceded by MARKER
+#
+# Insert this function into pipes to see their output when in debugging mode
+#
+#   sed -r 's/linux|unix/*NIX/gi' myfile.txt | debug:dump | lprint
+#
+# Or use this to mask a command's output unless in debug mode
+#
+#   which binary 2>&1 | debug:dump >/dev/null
+#
+###/doc
+function debug:dump {
+    if [[ "$DEBUG_mode" = true ]]; then
+        local MARKER="${1:-DEBUG: }"; shift || :
 
-SFILE="/tmp/searchfile_$(date "+%F%T"|md5sum|cut -d' ' -f1)"
-touch "$SFILE" || out:fail "Cannot create temp file"
+        cat - | sed -r "s/^/$MARKER/" | tee -a /dev/stderr
+    else
+        cat -
+    fi
+}
+
+### debug:break MESSAGE Usage:bbuild
+#
+# Add break points to a script
+#
+# Requires `DEBUG_mode` set to true
+#
+# When the script runs, the message is printed with a propmt, and execution pauses.
+#
+# Press return to continue execution.
+#
+# Type `exit`, `quit` or `stop` to stop the program. If the breakpoint is in a subshell,
+#  execution from after the subshell will be resumed.
+#
+###/doc
+
+function debug:break {
+    [[ "$DEBUG_mode" = true ]] || return 0
+
+    echo -en "${CRED}BREAKPOINT: $* >$CDEF " >&2
+    read
+    if [[ "$REPLY" =~ quit|exit|stop ]]; then
+        echo "${CBRED}ABORT${CDEF}"
+    fi
+}
+##bash-libs: bincheck.sh @ 266ad599 (after 1.1.4)
+
+### bincheck:get COMMANDS ... Usage:bbuild
+#
+# Return the first existing binary
+#
+# Useful for finding an appropriate binary when you know
+# different systems may supply binaries under different names.
+#
+# Returns the full path from `which` for the first executable
+# encountered.
+#
+# Example:
+#
+# 	bincheck:get markdown_py markdown ./mymarkdown
+#
+# Tries in turn to get a `markdown_py`, then a `markdown`, and then a local `./mymarkdown`
+#
+###/doc
+
+bincheck:get() {
+    local BINEXE=
+    for binname in "$@"; do
+        # Some implementations of `which` print error messages
+        # Not useful here.
+        BINEXE=$(which "$binname" 2>/dev/null)
+
+        if [[ -n "$BINEXE" ]]; then
+            echo "$BINEXE"
+            return 0
+        fi
+    done
+    return 1
+}
+
+### bincheck:has NAMES ... Usage:bbuild
+#
+# Determine if at least one of the binaries listed is present and installed on the system
+#
+###/doc
+
+bincheck:has() {
+    [[ -n "$(bincheck:get "$@")" ]]
+}
+
+### bincheck:path NAME Usage:bbuild
+#
+# Determine the actual path to the command
+#
+# Relative paths are not expanded.
+#
+###/doc
+
+bincheck:path() {
+    local binname="$1"; shift || :
+
+    [[ "$binname" =~ / ]] && { 
+        # A relative path cannot be resolved, just check existence
+        [[ -e "$binname" ]] && echo "$binname" || return 1
+
+    } || binname="$(which "$binname" 2>/dev/null)"
+
+    # `which` failed
+    [[ -n "$binname" ]] || return 1
+
+    [[ -h "$binname" ]] && {
+
+        local pointedname="$(ls -l "$binname"|grep -oP "$binname.+"|sed "s|$binname -> ||")"
+        bincheck:path "$pointedname" ; return "$?"
+    
+    } || echo "$binname"
+}
+
+function docpan {
+    echo "m $1" | cpan
+}
+
+function register_exclusions {
+    local exclusion
+    for exclusion in $(echo "$1"|sed 's/,/ /g'); do
+        EXCLUDED_MANAGERS+=("$exclusion")
+    done
+}
 
 function searchit {
+    local SOURCE="$1" ; shift
+
     out:info "Searching $1"
-    out:debug "$@"
-    local SOURCE=$1 ; shift
-    echo -e "\n[1;34m\t$SOURCE\n=============[0m" >> "$SFILE"
-    if [[ -n "$FILTER" ]]; then
-        $@ | grep -P "$FILTER" >> "$SFILE"
-    else
-        $@ >> "$SFILE"
-    fi
+    debug:print "$*"
+
+    echo -e "\n${CBBLU}\t$SOURCE\n=============${CDEF}" >> "$SFILE"
+
+    "$@" | grep -P "$FILTER" >> "$SFILE"
+
 }
 
 function doupdate {
@@ -419,81 +578,167 @@ function doupdate {
     fi
 }
 
-if [[ -f /usr/local/bin/paf ]]; then # support our own wrapper :-)
-    doupdate paf -u
-    searchit paf paf "$ARGS"
-elif [[ -f /usr/bin/apt-cache ]]; then
-    doupdate apt-get update
-    searchit APT apt-cache search "$ARGS"
-elif [[ -f /usr/bin/dnf ]]; then
-    searchit dnf dnf search "$ARGS"
-    searchit dnfgroup dnf groupsearch "$ARGS"
-elif [[ -f /usr/bin/yum ]]; then
-    searchit yum yum search "$ARGS"
-    searchit yumgroup yum groupsearch "$ARGS"
-elif [[ -f /usr/bin/zypper ]]; then
-    searchit zypper zypper search "$ARGS"
-elif [[ -f /usr/bin/yaourt ]]; then
-    doupdate yaourt -Sy
-    searchit yaourt yaourt -Qs "$ARGS"
-elif [[ -f /usr/bin/pacman ]]; then
-    doupdate pacman -Sy
-    searchit pacman pacman -Qs "$ARGS"
-elif [[ -f /usr/bin/emerge ]]; then
-    doupdate emerge sync
-    searchit emerge emerge -s "$ARG1"
-elif [[ -f /usr/bin/tazpkg ]]; then
-    doupdate tazpkg recharge
-    searchit tazpkg tazpkg search "$ARG1"
-fi
-
-# do these need explicit updates?
-if [[ -f /usr/bin/pip ]]; then searchit pip pip search "$ARGS" ; fi
-if [[ -f /usr/bin/gem ]]; then searchit gem gem search "$ARGS" ; fi
-if [[ -f /usr/bin/npm ]]; then searchit npm npm search "$ARGS" ; fi
-if [[ -f /usr/bin/cpan ]]; then searchit cpan docpan ; fi
-if [[ -f /usr/bin/pear ]]; then searchit pear pear search "$ARGS" ; fi
-
-# package maangement locally
-
 function findpkg {
-    EXT=.$1 ; shift
+    EXT=".$1" ; shift
     locate "$ARG1" | egrep "^${HOME}/.+$EXT\$"
 }
 
 function findfile {
-    SIGFILE=$1 ; shift
+    SIGFILE="$1" ; shift
     locate "$ARG1" | egrep "^${HOME}/.+/$SIGFILE\$"
 }
 
-if [[ -f /usr/bin/dpkg ]]; then
-    searchit "Local deb files" findpkg ".deb"
-elif [[ -f /usr/bin/yum ]] || [[ -f /usr/bin/dpkg ]]; then
-    searchit "Local RPM files" findpkg ".rpm"
+function is_not_excluded() {
+    local exclusion
+    for exclusion in "${EXCLUDED_MANAGERS[@]}"; do
+        [[ "$1" != "$exclusion" ]] || return 1
+    done
+    return 0
+}
+
+function trypkg {
+    local pkg
+    bincheck:has "$@" || return 1
+
+    for pkg in "$@"; do
+        is_not_excluded "$pkg" || return 1
+    done
+
+    return 0
+}
+
+function searchweb {
+    local QUERY="$1" ; shift
+    local PATTERN="$1" ; shift
+    elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=$QUERY" | grep -P "$PATTERN" -o|sort|uniq
+}
+
+autohelp:check "$@"
+
+DOUPDATE=no
+DEBUGMODE=no
+ARGS=()
+ARG1=
+FILTER=.
+EXCLUDED_MANAGERS=()
+PAFS_PAGER=(less -R)
+
+while [[ -n "$@" ]]; do
+    ARG="$1" ; shift
+    case "$ARG" in
+    -u|--update)
+        DOUPDATE=yes
+        ;;
+    --debug)
+        debug:mode output
+        ;;
+    -f|--filter)
+        FILTER="$(echo $1|sed -r "s/[\"']//g")" ; shift
+        ;;
+    -h|--help)
+        printhelp
+        exit 0
+        ;;
+    -e=*)
+        register_exclusions "${ARG#*=}"
+        ;;
+    --dump|-d)
+        PAFS_PAGER=(cat)
+        ;;
+    *)
+        ARGS+=("$ARG")
+        ;;
+    esac
+done
+
+ARG1="${ARGS[@]}"
+debug:print "ARG1=$ARG1"
+
+if [[ -z "$ARGS" ]]; then
+    out:fail "You must supply at least one package name to search."
 fi
+
+#SFILE="/tmp/searchfile_$(date "+%F%T"|md5sum|cut -d' ' -f1)"
+SFILE="$(mktemp)" || out:fail "Cannot create temp file"
+
+if is_not_excluded os; then
+    if trypkg paf; then # support our own wrapper :-)
+        doupdate paf -u
+        searchit paf paf "$ARGS"
+
+    elif trypkg apt-cache; then
+        doupdate apt-get update
+        searchit APT apt-cache search "$ARGS"
+
+    elif trypkg dnf; then
+        searchit dnf dnf search "$ARGS"
+        searchit dnfgroup dnf groupsearch "$ARGS"
+
+    elif trypkg yum; then
+        searchit yum yum search "$ARGS"
+        searchit yumgroup yum groupsearch "$ARGS"
+
+    elif trypkg zypper; then
+        searchit zypper zypper search "$ARGS"
+
+    elif trypkg yaourt; then
+        doupdate yaourt -Sy
+        searchit yaourt yaourt -Qs "$ARGS"
+
+    elif trypkg pacman; then
+        doupdate pacman -Sy
+        searchit pacman pacman -Qs "$ARGS"
+
+    elif trypkg emerge; then
+        doupdate emerge sync
+        searchit emerge emerge -s "$ARG1"
+
+    elif trypkg tazpkg; then
+        doupdate tazpkg recharge
+        searchit tazpkg tazpkg search "$ARG1"
+    fi
+fi
+
+# do these need explicit updates?
+trypkg pip && searchit pip pip search "$ARGS"
+trypkg gem && searchit gem gem search "$ARGS"
+trypkg npm && searchit npm npm search "$ARGS"
+trypkg docpan && searchit cpan docpan "$ARG1"
+trypkg pear && searchit pear pear search "$ARGS"
+trypkg cargo && searchit cargo cargo search "$ARGS"
 
 # ================
 # some more outlandish searches
 
-function searchweb {
-    local QUERY="$(echo $1|base64 -di)" ; shift
-    local PATTERN="$(echo $1|base64 -di)" ; shift
-    elinks -dump 1 "https://encrypted.google.com/search?hl=en&q=$QUERY" | grep -P "$PATTERN" -o|sort|uniq
-}
+if trypkg docker; then
+    searchit Docker docker search "$ARG1"
+fi
 
-if [[ -f /usr/bin/elinks ]]; then
+if bincheck:has elinks; then
+    URLARG1="$(python -c "import urllib as u; print(u.quote('$ARG1'))")"
     # ---- Github
-    searchit github searchweb $(echo "github%20\"$ARG1\""|base64 -w 0) $(echo "https://github.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9._-]+"|base64 -w 0)
+    is_not_excluded github && \
+        searchit github searchweb "github%20$URLARG1" "https://github.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9._-]+"
 else
-    out:warn "We need elinks for searching the web"
+    out:warn "'elinks' is required for searching the web"
 fi
 
 # ===============
 # Local builds
+if is_not_excluded local; then
+    searchit "Local buildables" findpkg 'Makefile|install\.sh'
 
-searchit "Local buildables" findpkg 'Makefile|install\.sh'
+    # package maangement locally
+
+    if trypkg dpkg yum dnf; then
+        searchit "Local RPM files" findpkg ".rpm"
+
+    elif trypkg dpkg; then
+        searchit "Local deb files" findpkg ".deb"
+    fi
+fi
 
 # ===========
 
-less -R "$SFILE"
+"${PAFS_PAGER[@]}" "$SFILE"
 rm "$SFILE"
