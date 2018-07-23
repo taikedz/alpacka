@@ -5,7 +5,7 @@ function docpan {
 function register_exclusions {
     local exclusion
     for exclusion in $(echo "$1"|sed 's/,/ /g'); do
-        EXCLUDED_MANAGERS+=("$exclusion")
+        EXCLUDED_MANAGERS="$EXCLUDED_MANAGERS $exclusion"
     done
 }
 
@@ -39,7 +39,8 @@ function findfile {
 
 function is_not_excluded() {
     local exclusion
-    for exclusion in "${EXCLUDED_MANAGERS[@]}"; do
+    # Deliberately not quoting, because variable cannot be an array
+    for exclusion in $EXCLUDED_MANAGERS; do
         [[ "$1" != "$exclusion" ]] || return 1
     done
     return 0

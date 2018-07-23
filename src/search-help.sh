@@ -13,10 +13,10 @@
 # 
 # * standard repositories for apt, dnf/yum, pacman, tazpkg and emerge systems
 # * AUR if yaourt is detected, in which case yaourt search is used instead of pacman
-# * Where detected, cpan (this needs to have been initialized first), pear, pip, ruby gems, npm
+# * Where detected, cpan (this needs to have been initialized first), pear, pip, ruby gems, npm, cargo
 # * searches for local .deb and .rpm files depending on detection of apt-get or yum/dnf
-# * performs a basic web search for github repositories
-# * and finally looks for directories with "Makefile" or "install.sh" files
+# * looks for directories with "Makefile" or "install.sh" files
+# * and even performs a basic web search for github repositories
 # 
 # The results are then displayed in `less`, and you can see which repositories or locations yeilded a result.
 # 
@@ -48,5 +48,11 @@
 #   local                 -- local files (.rpm, .deb, Makefile, install.sh)
 #   github                -- github.com
 #   docker                -- docker
+#
+# You can set names in your .bashrc to always ignore certain repositories, for example
+#
+#   export EXCLUDED_MANAGERS="docpan local docker"
+#
+# will cause `pafs` to never search CPAN, local files, or docker images.
 #
 ###/doc

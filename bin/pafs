@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -u
+
 ### pafs Usage:help
 # 
 # Search for packages everywhere!
@@ -15,10 +17,10 @@
 # 
 # * standard repositories for apt, dnf/yum, pacman, tazpkg and emerge systems
 # * AUR if yaourt is detected, in which case yaourt search is used instead of pacman
-# * Where detected, cpan (this needs to have been initialized first), pear, pip, ruby gems, npm
+# * Where detected, cpan (this needs to have been initialized first), pear, pip, ruby gems, npm, cargo
 # * searches for local .deb and .rpm files depending on detection of apt-get or yum/dnf
-# * performs a basic web search for github repositories
-# * and finally looks for directories with "Makefile" or "install.sh" files
+# * looks for directories with "Makefile" or "install.sh" files
+# * and even performs a basic web search for github repositories
 # 
 # The results are then displayed in `less`, and you can see which repositories or locations yeilded a result.
 # 
@@ -50,6 +52,12 @@
 #   local                 -- local files (.rpm, .deb, Makefile, install.sh)
 #   github                -- github.com
 #   docker                -- docker
+#
+# You can set names in your .bashrc to always ignore certain repositories, for example
+#
+#   export EXCLUDED_MANAGERS="docpan local docker"
+#
+# will cause `pafs` to never search CPAN, local files, or docker images.
 #
 ###/doc
 
@@ -556,7 +564,7 @@ function docpan {
 function register_exclusions {
     local exclusion
     for exclusion in $(echo "$1"|sed 's/,/ /g'); do
-        EXCLUDED_MANAGERS+=("$exclusion")
+        EXCLUDED_MANAGERS="$EXCLUDED_MANAGERS $exclusion"
     done
 }
 
@@ -590,7 +598,8 @@ function findfile {
 
 function is_not_excluded() {
     local exclusion
-    for exclusion in "${EXCLUDED_MANAGERS[@]}"; do
+    # Deliberately not quoting, because variable cannot be an array
+    for exclusion in $EXCLUDED_MANAGERS; do
         [[ "$1" != "$exclusion" ]] || return 1
     done
     return 0
@@ -620,7 +629,7 @@ DEBUGMODE=no
 ARGS=()
 ARG1=
 FILTER=.
-EXCLUDED_MANAGERS=()
+: "${EXCLUDED_MANAGERS=}"
 PAFS_PAGER=(less -R)
 
 while [[ -n "$@" ]]; do

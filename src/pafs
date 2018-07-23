@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -u
+
 #%include search-help.sh
 
 #%include autohelp.sh out.sh debug.sh bincheck.sh
@@ -13,7 +15,7 @@ DEBUGMODE=no
 ARGS=()
 ARG1=
 FILTER=.
-EXCLUDED_MANAGERS=()
+: "${EXCLUDED_MANAGERS=}"
 PAFS_PAGER=(less -R)
 
 while [[ -n "$@" ]]; do
