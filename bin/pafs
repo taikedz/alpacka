@@ -67,7 +67,7 @@ set -u
 #
 ###/doc
 
-##bash-libs: autohelp.sh @ 266ad599 (after 1.1.4)
+##bash-libs: autohelp.sh @ f6496eca (1.1.4)
 
 ### autohelp:print [ SECTION [FILE] ] Usage:bbuild
 # Write your help as documentation comments in your script
@@ -178,9 +178,9 @@ autohelp:check() {
         exit 0
     fi
 }
-##bash-libs: out.sh @ 266ad599 (after 1.1.4)
+##bash-libs: out.sh @ f6496eca (1.1.4)
 
-##bash-libs: colours.sh @ 266ad599 (after 1.1.4)
+##bash-libs: colours.sh @ f6496eca (1.1.4)
 
 ### Colours for bash Usage:bbuild
 # A series of colour flags for use in outputs.
@@ -210,7 +210,7 @@ autohelp:check() {
 #
 ###/doc
 
-##bash-libs: tty.sh @ 266ad599 (after 1.1.4)
+##bash-libs: tty.sh @ f6496eca (1.1.4)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -490,7 +490,7 @@ function debug:break {
         echo "${CBRED}ABORT${CDEF}"
     fi
 }
-##bash-libs: bincheck.sh @ 266ad599 (after 1.1.4)
+##bash-libs: bincheck.sh @ f6496eca (1.1.4)
 
 ### bincheck:get COMMANDS ... Usage:bbuild
 #
