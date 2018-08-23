@@ -4,17 +4,13 @@
 #
 # APT specific options include
 #
+# `-ip` - use first package name as PPA source, install the remaining packages after adding the PPA:
+#
+#    paf -ip ppa:libreoffice/ppa libreoffice
+#
 # `-gg` - perform a dist-upgrade
 #
 # `-gR` - perform a release upgrade
-#
-# When using the install action `-i`, if the first target is a ppa string (e.g. 'ppa:git-core/ppa'), alpacka will try to add the PPA first.
-#
-#   paf -i PPASTRING [PACKAGE ...]
-#
-# Example use:
-#
-#   paf -i ppa:git-core/ppa git
 #
 ###/doc
 
@@ -37,7 +33,7 @@ apt-get:install() {
     local firstpackage
     firstpackage="${PAF_packages[0]}"
 
-    if [[ "$firstpackage" =~ ^ppa:[a-zA-Z0-9]+/[a-zA-Z0-9._-]+$ ]]; then
+    if args:has "-ip" "$@"; then
         PAF_packages=("${PAF_packages[@]:1}")
 
         ppa:add "$firstpackage"

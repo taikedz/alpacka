@@ -787,22 +787,20 @@ paf:parse_arguments() {
     PAF_packages=("${PAF_packages[@]:1}")
 }
 
-ppa:assume() {
-    if [[ "$PAF_assume" = yes ]]; then
-        echo "-y"
-    fi
-}
-
 ppa:add() {
     bincheck:has add-apt-repository ||
         out:fail "PPAs are not supported on this system. Install 'add-apt-repository'"
 
-    paf:sudo add-apt-repository $(ppa:assume) "$1"
+    paf:sudo add-apt-repository "$1"
 }
 
 ### APT-specific options Usage:help-apt-get
 #
 # APT specific options include
+#
+# `-ip` - use first package name as PPA source, install the remaining packages after adding the PPA:
+#
+#    paf -ip ppa:libreoffice/ppa libreoffice
 #
 # `-gg` - perform a dist-upgrade
 #
@@ -829,14 +827,16 @@ apt-get:install() {
     local firstpackage
     firstpackage="${PAF_packages[0]}"
 
-    if [[ "$firstpackage" =~ ^ppa:[a-zA-Z0-9]+/[a-zA-Z0-9._-]+$ ]]; then
+    if args:has "-ip" "$@"; then
         PAF_packages=("${PAF_packages[@]:1}")
 
         ppa:add "$firstpackage"
         apt-get:update
     fi
 
-    paf:sudo apt-get install $(apt-get:assume) "${PAF_packages[@]:-}"
+    if [[ -n "${PAF_packages[*]}" ]]; then
+        paf:sudo apt-get install $(apt-get:assume) "${PAF_packages[@]:-}"
+    fi
 }
 
 apt-get:remove() {
