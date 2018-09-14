@@ -25,9 +25,9 @@ paf:warn() {
     local sleepsec=5
 
     if paf:warn:display "${1:-}"; then
-        out:info "Press Ctrl+C within  $sleepsec seconds to abort ..."
+        out:info "Press Ctrl+C within  $sleepsec seconds to abort, or Enter to continue ..."
 
-        sleep $sleepsec
+        read -t $sleepsec
     fi
 }
 

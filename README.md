@@ -35,10 +35,27 @@ To install them on Slitaz, run
 
 ;-)
 
+## Warnings
+
+You can also set a warning for any action. Warnings are messages that are displayed before an action is carried out. For each warning, you get a 5 second grace period in which to press `Ctrl+C` to abort, or you can press return to immediately proceed.
+
+To set a warning:
+    
+    sudo paf -w upgrade "Be careful when upgrading this server - it restarts the core service, which takes a while !"
+
+To unset a warning:
+
+    sudo paf -w upgrade .
+
+To simply view a set warning:
+
+    paf -w upgrade
 
 ## Why?
 
 Because I am too lazy to remember which command has what option names; and in some cases to get over some limitations of the package manager itself.
+
+I also forget what servers need special attention when doing system upgrades. Hah.
 
 # `pafs`
 
