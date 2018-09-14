@@ -35,6 +35,28 @@ To install them on Slitaz, run
 
 ;-)
 
+## What command ....?
+
+Ever find yourself thinking, "was it `update` or `upgrade` I use here... and is it `install` or `add` or `gi` ...?"
+
+`paf` allows you to just use a standard flag, and forget the details, and you can specify several in one go - for example, to install htop and tmux, after updating the package indeices, and perform a cleanup afterwards, automatically accepting... do:
+
+    paf -i tmux htop -u -c -y
+
+All actions will be carried out on Debian and Ubuntu, on Fedora the index update will be ignored. Less to think about.
+
+See [src/help.sh] for details on all standard flags.
+
+## Supported package managers:
+
+* Debian APT
+* Ubuntu APT and PPAs
+* Fedora DNF
+* Red Hat YUM
+* Alpine APK
+* OpenSuSE Zypper
+* Slitaz Tazpkg
+
 ## Warnings
 
 You can also set a warning for any action. Warnings are messages that are displayed before an action is carried out. For each warning, you get a 5 second grace period in which to press `Ctrl+C` to abort, or you can press return to immediately proceed.
