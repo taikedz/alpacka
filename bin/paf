@@ -679,6 +679,144 @@ function out:fail {
 function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
+### Warning messages Usage:help
+#
+# You can set a warning message with the -w flag to display a warning before carrying out any one action.
+#
+# This allows you to set a warning, with an opportunity to abort, before any defined action.
+#
+#   paf -w ACTION
+#   sudo paf -w ACTION MESSAGE
+# 
+# The available actions are:
+#
+# install, clean, upgrade, update, list, show, search
+#
+# If MESSAGE is '.', then the message is cleared and will no longer show on actions.
+#
+# If no MESSAGE is provided, or it is an empty string, the current message is displayed.
+#
+###/doc
+
+##bash-libs: isroot.sh @ f6496eca (1.1.4)
+
+
+### isroot Usage:bbuild
+# Test for root access
+#
+# If using cygwin, user is always root.
+###/doc
+
+function isroot {
+    [[ "$UID" = 0 ]] || isroot:cygwin
+}
+
+### isroot:cygwin Usage:bbuild
+# Returns whether running under cygwin.
+#
+# Typically a user under cygwin is root, except when they're not
+#
+# This utility exists as a reminder to check for cygwin.
+###/doc
+
+function isroot:cygwin {
+    uname -o | grep -i cygwin -q
+}
+
+### isroot:require MESSAGE Usage:bbuild
+# Require root. If script is not running as root,
+# print message and exit
+###/doc
+function isroot:require {
+    isroot || out:fail "$*"
+}
+
+PAF_warningdir="/etc/alpacka/warnings"
+
+paf:warn() {
+    local sleepsec=5
+
+    if paf:warn:display "${1:-}"; then
+        out:info "Press Ctrl+C within  $sleepsec seconds to abort ..."
+
+        sleep $sleepsec
+    fi
+}
+
+paf:warn:check-name() {
+    [[ -n "${1:-}" ]] || {
+        out:warn "(No warning section specified ... sleeping 5sec, press Ctrl+C to abort)"
+        sleep 5
+    }
+
+    [[ "$1" =~ ^[a-z]+$ ]] || out:fail "invalid warning type '$1'"
+}
+
+paf:warn:is-set() {
+    [[ -f "$1" ]] &&
+        [[ $(grep -Ec ^ "$1") -gt 0 ]]
+}
+
+paf:warn:display() {
+    paf:warn:check-name "${1:-}"
+
+    local warnfile
+    warnfile="$PAF_warningdir/${1}.txt"
+
+    paf:warn:is-set "$warnfile" || return 1
+
+    echo -n "$CBYEL" >&2
+    cat "$warnfile"
+    echo
+    echo -n "$CDEF" >&2
+
+    return 0
+}
+
+paf:warn:get-warning-args() {
+    args:after -w "$@"
+
+    [[ -n "${RETARR_ARGSAFTER[*]:-}" ]] || out:fail "No warning parameters ..."
+
+    PAF_warntype=("${RETARR_ARGSAFTER[0]}")
+
+    PAF_warnmessage=("${RETARR_ARGSAFTER[@]:1}")
+    PAF_warnmessage="${PAF_warnmessage[*]:-}"
+}
+
+paf:warn:write() {
+    isroot:require "You must be root to set warnings."
+
+    mkdir -p "$PAF_warningdir"
+
+
+    if [[ "$PAF_warnmessage" = "." ]]; then
+        echo -n > "$PAF_warnpath"
+    else
+        echo -n "$PAF_warntype message: ${PAF_warnmessage}" > "$PAF_warnpath"
+    fi
+
+    out:info "Warning wwritten to $PAF_warnpath"
+}
+
+paf:warn:warn-set() {
+    paf:warn:get-warning-args "$@"
+
+    paf:warn:check-name "$PAF_warntype"
+
+    PAF_warnpath="$PAF_warningdir/${PAF_warntype}.txt"
+
+    if [[ -n "$PAF_warnmessage" ]]; then
+        paf:warn:write
+    
+    else
+        paf:warn:is-set "$PAF_warnpath" || out:fail "No warning set for '$PAF_warntype'"
+
+        out:info "Contents of '$PAF_warnpath'"
+        paf:warn:display "$PAF_warntype"
+    fi
+    exit
+}
 
 paf:main() {
     PAF_activities=(:)
@@ -700,6 +838,8 @@ paf:main() {
     paf:run_activity update
 
     if [[ -n "${PAF_action:-}" ]]; then
+        paf:warn "$PAF_action"
+
         # We pass "$@" in case it is needed
         #  but most actions just access ${PAF_packages[@]} directly
         "$PAF_pm:$PAF_action" "$@"
@@ -749,6 +889,7 @@ paf:add_activity() {
 paf:run_activity() {
     local activity="$1"
     if [[ "${PAF_activities[*]:-}" =~ "$activity" ]]; then
+        paf:warn "$activity"
         "$PAF_pm:$activity"
     fi
 }
@@ -756,6 +897,10 @@ paf:run_activity() {
 paf:parse_arguments() {
     for arg in "$@"; do
         case "$arg" in
+        -w)
+            paf:warn:warn-set "$@"
+            exit 0
+            ;;
         -u) paf:add_activity "update"
             if [[ "$PAF_action" = search ]]; then
                 PAF_action=""

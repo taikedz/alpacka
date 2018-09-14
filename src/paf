@@ -86,6 +86,7 @@ set -euo pipefail
 ###/doc
 
 #%include autohelp.sh bincheck.sh args.sh runmain.sh out.sh
+#%include warn.sh
 
 paf:main() {
     PAF_activities=(:)
@@ -107,6 +108,8 @@ paf:main() {
     paf:run_activity update
 
     if [[ -n "${PAF_action:-}" ]]; then
+        paf:warn "$PAF_action"
+
         # We pass "$@" in case it is needed
         #  but most actions just access ${PAF_packages[@]} directly
         "$PAF_pm:$PAF_action" "$@"
@@ -156,6 +159,7 @@ paf:add_activity() {
 paf:run_activity() {
     local activity="$1"
     if [[ "${PAF_activities[*]:-}" =~ "$activity" ]]; then
+        paf:warn "$activity"
         "$PAF_pm:$activity"
     fi
 }
@@ -163,6 +167,10 @@ paf:run_activity() {
 paf:parse_arguments() {
     for arg in "$@"; do
         case "$arg" in
+        -w)
+            paf:warn:warn-set "$@"
+            exit 0
+            ;;
         -u) paf:add_activity "update"
             if [[ "$PAF_action" = search ]]; then
                 PAF_action=""
