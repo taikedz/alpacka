@@ -8,6 +8,10 @@
 #
 #    paf -ip ppa:libreoffice/ppa libreoffice
 #
+# `-if` - use dependency fix before running installation
+#
+# ( can use `-ipf` to run both fix and PPA in one )
+#
 # `-gg` - perform a dist-upgrade
 #
 # `-gR` - perform a release upgrade
@@ -35,7 +39,11 @@ apt-get:install() {
     local firstpackage
     firstpackage="${PAF_packages[0]}"
 
-    if [[ "$PAF_flag_install" = "-ip" ]]; then
+    if [[ "$PAF_flag_install" =~ f ]]; then
+        apt-get:fix
+    fi
+
+    if [[ "$PAF_flag_install" =~ p ]]; then
         PAF_packages=("${PAF_packages[@]:1}")
 
         ppa:add "$firstpackage"
@@ -45,6 +53,10 @@ apt-get:install() {
     if [[ -n "${PAF_packages[*]}" ]]; then
         paf:sudo apt-get install $(apt-get:assume) "${PAF_packages[@]:-}"
     fi
+}
+
+apt-get:fix() {
+    paf:sudo apt-get $(apt-get:assume) -f install
 }
 
 apt-get:remove() {
