@@ -2,9 +2,11 @@
 
 set -euo pipefail
 
+PAF_configdir="/etc/alpacka"
+
 #%include help.sh
 
-#%include autohelp.sh bincheck.sh args.sh runmain.sh out.sh
+#%include autohelp.sh bincheck.sh args.sh runmain.sh out.sh readkv.sh
 #%include warn.sh
 
 paf:main() {
@@ -14,7 +16,9 @@ paf:main() {
     PAF_action=search
     PAF_assume=
 
-    paf:flightcheck
+    paf:preflight_check
+
+    paf:load_configuration
 
     paf:get_package_manager
 
@@ -39,10 +43,21 @@ paf:main() {
     paf:run_activity clean
 }
 
-paf:flightcheck() {
+paf:preflight_check() {
     bincheck:has grep || out:fail "'grep' command is required but was not found"
 
     bincheck:has less || . <(echo 'less() { cat - ; }')
+}
+
+paf:load_configuration() {
+    local cfile="$PAF_configdir/config.ini"
+    if [[ ! -f "$cfile" ]]; then
+        return 0
+    fi
+
+    if [[ -z "${PAF_warning_sleep:-}" ]]; then
+        PAF_warning_sleep="$(readkv warning_sleep "$cfile")"
+    fi
 }
 
 paf:help() {
@@ -100,7 +115,7 @@ paf:parse_arguments() {
             ;;
         -u*) paf:add_activity "update"
             PAF_flag_update="$arg"
-            if [[ "$PAF_action" = search ]] && [[ "${#PAF_packages[@]}" -lt 1 ]]; then
+            if [[ "$PAF_action" = search ]] && [[ "${#PAF_packages[@]}" -lt 2 ]]; then
                 PAF_action=""
             fi
             ;;

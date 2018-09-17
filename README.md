@@ -49,7 +49,7 @@ See [src/help.sh](src/help.sh) for details on all standard flags.
 
 ## Get warnings
 
-You can also set a warning for any action. Warnings are messages that are displayed before an action is carried out. For each warning, you get a 5 second grace period in which to press `Ctrl+C` to abort, or you can press return to immediately proceed.
+You can also set a warning for any action. Warnings are messages that are displayed before an action is carried out. For each warning, you get a grace period in which to press `Ctrl+C` to abort, or you can press return to immediately proceed.
 
 To set a warning:
     
@@ -62,6 +62,8 @@ To unset a warning:
 To simply view a set warning:
 
     paf -w upgrade
+
+The default grace period is 5 seconds. You can configure the grace period to (e.g.) 10 seconds by setting `warning_sleep = 10` in `/etc/alpacka/config.ini`
 
 ## Supported package managers:
 

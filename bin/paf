@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+PAF_configdir="/etc/alpacka"
+
 
 ### PAF installer Usage:help
 # 
@@ -649,6 +651,68 @@ function out:fail {
 function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
+##bash-libs: readkv.sh @ f6496eca (1.1.4)
+
+### Key Value Pair Reader Usage:bbuild
+#
+# Read a value given the key, from a specified file
+#
+###/doc
+
+### readkv KEY FILE [DEFAULT] Usage:bbuild
+#
+# The KEY is the key in the file. A key is identified as starting at the beginning of a line, and ending at the first '=' character
+#
+# The value starts immediately after the first '=' character.
+#
+# If no value is found, the DEFAULT value is returned, or an empty string
+#
+###/doc
+
+function readkv {
+    local thedefault thekey thefile
+    thekey="$1" ; shift
+    thefile="$1"; shift
+
+    if [[ -n "${1:-}" ]]; then
+        thedefault="$1"; shift || :
+    fi
+
+    local res="$(readkv:meaningful_data "$thefile"|egrep "^$thekey"'\s*='|sed -r "s/^$thekey"'\s*=\s*//')"
+    if [[ -z "$res" ]]; then
+        echo "${thedefault:-}"
+    else
+        echo "$res"
+    fi
+}
+
+### readkv:require KEY FILE Usage:bbuild
+#
+# Like readkv, but causes a failure if the file does not exist.
+#
+###/doc
+
+function readkv:require {
+    if [[ -z "${2:-}" ]]; then
+        out:fail "No file specified to read [$*]"
+    fi
+
+    if [[ ! -f "$2" ]] ; then
+        out:fail "No such file $2 !"
+    fi
+
+    if ! head -n 1 "$2" > /dev/null; then
+        out:fail "Could not read $2"
+    fi
+    readkv "$@"
+}
+
+### readkv:moeaningful_data FILE Usage:bbuild
+# Dump the file contents, stripping meaningless data (empty lines and comment lines)
+###/doc
+readkv:meaningful_data() {
+    grep -v -P '^\s*(#.*)?$' "$1"
+}
 ### Warning messages Usage:help
 #
 # You can set a warning message with the -w flag to display a warning before carrying out any one action.
@@ -665,6 +729,8 @@ function out:error {
 # If MESSAGE is '.', then the message is cleared and will no longer show on actions.
 #
 # If no MESSAGE is provided, or it is an empty string, the current message is displayed.
+#
+# By default, warning waits 5 seconds before proceeding. Set "PAF_warning_sleep" to an int via environment variable, or "warning_sleep" in /etc/alpacka/config.ini
 #
 ###/doc
 
@@ -701,15 +767,20 @@ function isroot:require {
     isroot || out:fail "$*"
 }
 
-PAF_warningdir="/etc/alpacka/warnings"
+PAF_warningdir="$PAF_configdir/warnings"
 
 paf:warn() {
-    local sleepsec=5
+    local err=0
+    local sleepsec="${PAF_warning_sleep:-5}"
+    [[ "$sleepsec" =~ ^[0-9]+$ ]] || out:fail "Warning sleep duration is not an int: $sleepsec"
 
     if paf:warn:display "${1:-}"; then
         out:info "Press Ctrl+C within  $sleepsec seconds to abort, or Enter to continue ..."
 
-        read -t $sleepsec
+        read -t $sleepsec || err="$?"
+        if [[ "$err" = 0 ]] || [[ "$err" -ge 128 ]]; then
+            return 0
+        fi
     fi
 }
 
@@ -795,7 +866,9 @@ paf:main() {
     PAF_action=search
     PAF_assume=
 
-    paf:flightcheck
+    paf:preflight_check
+
+    paf:load_configuration
 
     paf:get_package_manager
 
@@ -820,10 +893,21 @@ paf:main() {
     paf:run_activity clean
 }
 
-paf:flightcheck() {
+paf:preflight_check() {
     bincheck:has grep || out:fail "'grep' command is required but was not found"
 
     bincheck:has less || . <(echo 'less() { cat - ; }')
+}
+
+paf:load_configuration() {
+    local cfile="$PAF_configdir/config.ini"
+    if [[ ! -f "$cfile" ]]; then
+        return 0
+    fi
+
+    if [[ -z "${PAF_warning_sleep:-}" ]]; then
+        PAF_warning_sleep="$(readkv warning_sleep "$cfile")"
+    fi
 }
 
 paf:help() {
@@ -881,7 +965,7 @@ paf:parse_arguments() {
             ;;
         -u*) paf:add_activity "update"
             PAF_flag_update="$arg"
-            if [[ "$PAF_action" = search ]] && [[ "${#PAF_packages[@]}" -lt 1 ]]; then
+            if [[ "$PAF_action" = search ]] && [[ "${#PAF_packages[@]}" -lt 2 ]]; then
                 PAF_action=""
             fi
             ;;

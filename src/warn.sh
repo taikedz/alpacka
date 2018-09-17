@@ -15,19 +15,26 @@
 #
 # If no MESSAGE is provided, or it is an empty string, the current message is displayed.
 #
+# By default, warning waits 5 seconds before proceeding. Set "PAF_warning_sleep" to an int via environment variable, or "warning_sleep" in /etc/alpacka/config.ini
+#
 ###/doc
 
 #%include isroot.sh
 
-PAF_warningdir="/etc/alpacka/warnings"
+PAF_warningdir="$PAF_configdir/warnings"
 
 paf:warn() {
-    local sleepsec=5
+    local err=0
+    local sleepsec="${PAF_warning_sleep:-5}"
+    [[ "$sleepsec" =~ ^[0-9]+$ ]] || out:fail "Warning sleep duration is not an int: $sleepsec"
 
     if paf:warn:display "${1:-}"; then
         out:info "Press Ctrl+C within  $sleepsec seconds to abort, or Enter to continue ..."
 
-        read -t $sleepsec
+        read -t $sleepsec || err="$?"
+        if [[ "$err" = 0 ]] || [[ "$err" -ge 128 ]]; then
+            return 0
+        fi
     fi
 }
 
