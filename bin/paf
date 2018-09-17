@@ -5,11 +5,12 @@ set -euo pipefail
 PAF_configdir="/etc/alpacka"
 
 
-### PAF installer Usage:help
+### Uniform Package Management Wrapper Usage:help
 # 
-# The `paf` command is a shorthand to allow use of a single command across distros.
+# The `paf` command is a shorthand to allow use of a single package management command across distros.
 #
-# Run `paf` and let it determine whether to invoke apt-get, dnf or yum.
+#
+# Whether you are runing Ubuntu, Fedora, Arch or other, these commands will all work, and perform the equivalent expected actions.
 #
 # ## ACTIVITIES AND OPTIONS
 #
@@ -54,6 +55,25 @@ PAF_configdir="/etc/alpacka"
 # Remove
 #     
 #     paf -r PACKAGES ...
+#
+#
+#
+#
+# Examples
+# --------
+#
+# Install 3 packages, after updating the package index if applicable:
+#
+#   paf -u -i htop vim tmux
+#
+# Perform a system upgrade, after upgrading the package index (if applicable):
+#
+#   paf -u -g
+#
+# Clean out package manager cache:
+#
+#   paf -c
+#
 ###/doc
 
 
@@ -1018,6 +1038,8 @@ ppa:add() {
 #
 # `-gR` - perform a release upgrade
 #
+# `-rp` - purge
+#
 ###/doc
 
 apt-get:assume() {
@@ -1052,7 +1074,12 @@ apt-get:install() {
 }
 
 apt-get:remove() {
-    paf:sudo apt-get remove $(apt-get:assume) "${PAF_packages[@]:-}"
+    if [[ "$PAF_flag_remove" = "-rp" ]]; then
+        paf:sudo apt-get purge $(apt-get:assume) "${PAF_packages[@]:-}"
+
+    else
+        paf:sudo apt-get remove $(apt-get:assume) "${PAF_packages[@]:-}"
+    fi
 }
 
 apt-get:list() {
@@ -1067,19 +1094,23 @@ apt-get:show() {
     done
 }
 
+apt-get:has-release-upgrade() {
+    bincheck:has do-release-upgrade || {
+        if [[ "$(. /etc/os-release ; echo "$ID")" = ubuntu ]]; then
+            out:warn "'ubuntu-release-upgrader-core' required - installing ..."
+            apt-get install ubuntu-release-upgrader-core
+        else
+            out:fail "Only supported on Ubuntu"
+        fi
+    }
+}
+
 apt-get:upgrade() {
     if [[ "$PAF_flag_upgrade" = "-gg" ]] ; then
         paf:sudo apt-get $(apt-get:assume) dist-upgrade
 
     elif [[ "$PAF_flag_upgrade" = "-gR" ]]; then
-        bincheck:has do-release-upgrade || {
-            if [[ "$(. /etc/os-release ; echo "$ID")" = ubuntu ]]; then
-                out:warn "'ubuntu-release-upgrader-core' required - installing ..."
-                apt-get install ubuntu-release-upgrader-core
-            else
-                out:fail "Only supported on Ubuntu"
-            fi
-        }
+        apt-get:has-release-upgrade
         paf:sudo do-release-upgrade $(apt-get:assume)
 
     else

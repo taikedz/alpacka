@@ -1,8 +1,18 @@
 # alpacka
 
-Wrapper for package managers - use the same commands on all systems.
+Wrapper for package managers - use the same commands on all systems, stay sane.
 
 (C) Tai Kedzierski 2016-2018, licensed under the GNU General Public License v3
+
+## Why ?
+
+A few reasons:
+
+1. All package managers have their idisyncracies even with regard to activities they have in common. Alpacka unifies the workflow.
+2. Most package managers don't allow performing multiple associated actions in conjunction (index rebuild, cleanup); Alpacka provides single switches to activate each.
+3. Some package managers have limitations, dissociated commands, or complicated syntax - alpacka overcomes the two former, and provides a uniform syntax to get around the latter.
+4. No package managers allow setting pre-action warnings - this feature helps avoid butter-fingering an upgrade and downtiming a server unintentionally. Alpacka provides warnings with configurable timeoouts.
+5. I'm lazy and don't like retyping a command simply to change one part. Alpacka only runs the last action specified amongst info, install, remove, or system upgrade
 
 ## Install
 
@@ -19,7 +29,7 @@ You probably already have these, unless you're running in some pared-down enviro
 
 # What is it?
 
-The `alpacka` scripts are wrappers around popular package management commands (e.g. `apt`, `yum`, `dnf`, etc) allowing you to issue similar commands on any supported system.
+The `alpacka` scripts are wrappers around popular package management commands (e.g. `apt`, `yum`, `dnf`, `pacman`, etc) allowing you to issue similar commands on any supported system.
 
 For example to install the `htop` and `tmux` commands on Fedora, run
 
@@ -29,7 +39,7 @@ To install them on Debian, run
 
 	paf -i htop tmux
 
-To install them on Slitaz, run
+To install them on Arch, run
 
 	paf -i htop tmux
 
@@ -59,7 +69,7 @@ To unset a warning:
 
     sudo paf -w upgrade .
 
-To simply view a set warning:
+To simply view an existing warning:
 
     paf -w upgrade
 
@@ -95,3 +105,5 @@ Supported package managers for the `pafs` search utility include:
 * cpan
 * ruby gem
 * more to come...
+
+Individual package managers or package manager groups can be ignored.

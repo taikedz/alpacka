@@ -38,6 +38,11 @@
 #     Package managers to exclude, e.g. `-e=docpan,docker,github`
 #
 #     See pafs -e for a list of exclusion names
+#
+# You can set a list of manager definitions ... to exclude in /etc/alpacka/config.ini under the `pafs_exclude` key - e.g.
+#
+#   pafs_exclude = docpan local web
+#
 ###/doc
 
 ### Package manager shortnames Usage:groups

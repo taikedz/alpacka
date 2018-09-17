@@ -1,9 +1,10 @@
 
-### PAF installer Usage:help
+### Uniform Package Management Wrapper Usage:help
 # 
-# The `paf` command is a shorthand to allow use of a single command across distros.
+# The `paf` command is a shorthand to allow use of a single package management command across distros.
 #
-# Run `paf` and let it determine whether to invoke apt-get, dnf or yum.
+#
+# Whether you are runing Ubuntu, Fedora, Arch or other, these commands will all work, and perform the equivalent expected actions.
 #
 # ## ACTIVITIES AND OPTIONS
 #
@@ -48,5 +49,24 @@
 # Remove
 #     
 #     paf -r PACKAGES ...
+#
+#
+#
+#
+# Examples
+# --------
+#
+# Install 3 packages, after updating the package index if applicable:
+#
+#   paf -u -i htop vim tmux
+#
+# Perform a system upgrade, after upgrading the package index (if applicable):
+#
+#   paf -u -g
+#
+# Clean out package manager cache:
+#
+#   paf -c
+#
 ###/doc
 

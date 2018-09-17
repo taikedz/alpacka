@@ -42,6 +42,11 @@ set -u
 #     Package managers to exclude, e.g. `-e=docpan,docker,github`
 #
 #     See pafs -e for a list of exclusion names
+#
+# You can set a list of manager definitions ... to exclude in /etc/alpacka/config.ini under the `pafs_exclude` key - e.g.
+#
+#   pafs_exclude = docpan local web
+#
 ###/doc
 
 ### Package manager shortnames Usage:groups
@@ -671,6 +676,9 @@ while [[ -n "$@" ]]; do
     esac
 done
 
+# Read configuration plain
+EXCLUDED_MANAGERS="${EXCLUDED_MANAGERS:-} $(readkv pafs_exclude /etc/alpacka/config.ini)"
+
 [[ -n "${ARGS[*]+ARGS[*]}" ]] || out:fail "No search term provided"
 
 ARG1="${ARGS[@]}"
@@ -684,40 +692,13 @@ fi
 SFILE="$(mktemp)" || out:fail "Cannot create temp file"
 
 if is_not_excluded os; then
-    if trypkg paf; then # support our own wrapper :-)
+    if trypkg paf; then
         doupdate paf -u
         searchit paf paf "$ARGS"
-
-    elif trypkg apt-cache; then
-        doupdate apt-get update
-        searchit APT apt-cache search "$ARGS"
-
-    elif trypkg dnf; then
-        searchit dnf dnf search "$ARGS"
-        searchit dnfgroup dnf groupsearch "$ARGS"
-
-    elif trypkg yum; then
-        searchit yum yum search "$ARGS"
-        searchit yumgroup yum groupsearch "$ARGS"
-
-    elif trypkg zypper; then
-        searchit zypper zypper search "$ARGS"
-
-    elif trypkg yaourt; then
-        doupdate yaourt -Sy
-        searchit yaourt yaourt -Qs "$ARGS"
-
-    elif trypkg pacman; then
-        doupdate pacman -Sy
-        searchit pacman pacman -Qs "$ARGS"
 
     elif trypkg emerge; then
         doupdate emerge sync
         searchit emerge emerge -s "$ARG1"
-
-    elif trypkg tazpkg; then
-        doupdate tazpkg recharge
-        searchit tazpkg tazpkg search "$ARG1"
     fi
 fi
 

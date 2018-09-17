@@ -12,6 +12,8 @@
 #
 # `-gR` - perform a release upgrade
 #
+# `-rp` - purge
+#
 ###/doc
 
 apt-get:assume() {
@@ -46,7 +48,12 @@ apt-get:install() {
 }
 
 apt-get:remove() {
-    paf:sudo apt-get remove $(apt-get:assume) "${PAF_packages[@]:-}"
+    if [[ "$PAF_flag_remove" = "-rp" ]]; then
+        paf:sudo apt-get purge $(apt-get:assume) "${PAF_packages[@]:-}"
+
+    else
+        paf:sudo apt-get remove $(apt-get:assume) "${PAF_packages[@]:-}"
+    fi
 }
 
 apt-get:list() {
@@ -61,19 +68,23 @@ apt-get:show() {
     done
 }
 
+apt-get:has-release-upgrade() {
+    bincheck:has do-release-upgrade || {
+        if [[ "$(. /etc/os-release ; echo "$ID")" = ubuntu ]]; then
+            out:warn "'ubuntu-release-upgrader-core' required - installing ..."
+            apt-get install ubuntu-release-upgrader-core
+        else
+            out:fail "Only supported on Ubuntu"
+        fi
+    }
+}
+
 apt-get:upgrade() {
     if [[ "$PAF_flag_upgrade" = "-gg" ]] ; then
         paf:sudo apt-get $(apt-get:assume) dist-upgrade
 
     elif [[ "$PAF_flag_upgrade" = "-gR" ]]; then
-        bincheck:has do-release-upgrade || {
-            if [[ "$(. /etc/os-release ; echo "$ID")" = ubuntu ]]; then
-                out:warn "'ubuntu-release-upgrader-core' required - installing ..."
-                apt-get install ubuntu-release-upgrader-core
-            else
-                out:fail "Only supported on Ubuntu"
-            fi
-        }
+        apt-get:has-release-upgrade
         paf:sudo do-release-upgrade $(apt-get:assume)
 
     else
