@@ -14,6 +14,8 @@ paf:main() {
     PAF_action=search
     PAF_assume=
 
+    paf:flightcheck
+
     paf:get_package_manager
 
     paf:help "$@"
@@ -37,6 +39,12 @@ paf:main() {
     paf:run_activity clean
 }
 
+paf:flightcheck() {
+    bincheck:has grep || out:fail "'grep' command is required but was not found"
+
+    bincheck:has less || . <(echo 'less() { cat - ; }')
+}
+
 paf:help() {
     if [[ "$*" =~ --help ]]; then
         autohelp:print help "$0"
@@ -57,7 +65,7 @@ paf:sudo() {
 }
 
 paf:get_package_manager() {
-    local drivers=(apt-get:dpkg dnf:rpm yum:rpm tazpkg: apk: zypper:rpm ) # pacman)
+    local drivers=(apt-get:dpkg dnf:rpm yum:rpm tazpkg: apk: zypper:rpm pacman)
     local drive
 
     for drive in "${drivers[@]}"; do
@@ -90,29 +98,34 @@ paf:parse_arguments() {
             paf:warn:warn-set "$@"
             exit 0
             ;;
-        -u) paf:add_activity "update"
-            if [[ "$PAF_action" = search ]]; then
+        -u*) paf:add_activity "update"
+            PAF_flag_update="$arg"
+            if [[ "$PAF_action" = search ]] && [[ "${#PAF_packages[@]}" -lt 1 ]]; then
                 PAF_action=""
             fi
             ;;
 
-        -c)
+        -c*)
             paf:add_activity "clean"
+            PAF_flag_clean="$arg"
             if [[ "$PAF_action" = search ]]; then
                 PAF_action=""
             fi
             ;;
 
-        -g*)    PAF_action="upgrade" ;;
-        -i*)    PAF_action="install" ;;
-        -r*)    PAF_action="remove" ;;
-        -l*)    PAF_action="list" ;;
-        -s*)    PAF_action="show" ;;
+        -g*)    PAF_action="upgrade" ; PAF_flag_upgrade="$arg" ;;
+        -i*)    PAF_action="install" ; PAF_flag_install="$arg" ;;
+        -r*)    PAF_action="remove"  ; PAF_flag_remove="$arg" ;;
+        -l*)    PAF_action="list"    ; PAF_flag_list="$arg" ;;
+        -s*)    PAF_action="show"    ; PAF_flag_show="$arg" ;;
 
         -y) PAF_assume="yes" ;;
         -n) PAF_assume="no" ;;
 
-        *)  PAF_packages[${#PAF_packages[@]}]="$arg" ;;
+        *)
+            PAF_packages[${#PAF_packages[@]}]="$arg"
+            [[ -n "$PAF_action" ]] || PAF_action=search
+            ;;
         esac
     done
 
@@ -121,7 +134,7 @@ paf:parse_arguments() {
     PAF_packages=("${PAF_packages[@]:1}")
 }
 
-#%include apt.sh dnf.sh tazpkg.sh apk.sh zypper.sh
-# zypper.sh pacman.sh emerge.sh # To be implemented
+#%include apt.sh dnf.sh tazpkg.sh apk.sh zypper.sh pacman.sh
+# emerge.sh # To be implemented
 
 runmain paf paf:main "$@"

@@ -52,6 +52,7 @@ set -euo pipefail
 # Remove
 #     
 #     paf -r PACKAGES ...
+###/doc
 
 
 ##bash-libs: autohelp.sh @ f6496eca (1.1.4)
@@ -794,6 +795,8 @@ paf:main() {
     PAF_action=search
     PAF_assume=
 
+    paf:flightcheck
+
     paf:get_package_manager
 
     paf:help "$@"
@@ -817,6 +820,12 @@ paf:main() {
     paf:run_activity clean
 }
 
+paf:flightcheck() {
+    bincheck:has grep || out:fail "'grep' command is required but was not found"
+
+    bincheck:has less || . <(echo 'less() { cat - ; }')
+}
+
 paf:help() {
     if [[ "$*" =~ --help ]]; then
         autohelp:print help "$0"
@@ -837,7 +846,7 @@ paf:sudo() {
 }
 
 paf:get_package_manager() {
-    local drivers=(apt-get:dpkg dnf:rpm yum:rpm tazpkg: apk: zypper:rpm ) # pacman)
+    local drivers=(apt-get:dpkg dnf:rpm yum:rpm tazpkg: apk: zypper:rpm pacman)
     local drive
 
     for drive in "${drivers[@]}"; do
@@ -870,29 +879,34 @@ paf:parse_arguments() {
             paf:warn:warn-set "$@"
             exit 0
             ;;
-        -u) paf:add_activity "update"
-            if [[ "$PAF_action" = search ]]; then
+        -u*) paf:add_activity "update"
+            PAF_flag_update="$arg"
+            if [[ "$PAF_action" = search ]] && [[ "${#PAF_packages[@]}" -lt 1 ]]; then
                 PAF_action=""
             fi
             ;;
 
-        -c)
+        -c*)
             paf:add_activity "clean"
+            PAF_flag_clean="$arg"
             if [[ "$PAF_action" = search ]]; then
                 PAF_action=""
             fi
             ;;
 
-        -g*)    PAF_action="upgrade" ;;
-        -i*)    PAF_action="install" ;;
-        -r*)    PAF_action="remove" ;;
-        -l*)    PAF_action="list" ;;
-        -s*)    PAF_action="show" ;;
+        -g*)    PAF_action="upgrade" ; PAF_flag_upgrade="$arg" ;;
+        -i*)    PAF_action="install" ; PAF_flag_install="$arg" ;;
+        -r*)    PAF_action="remove"  ; PAF_flag_remove="$arg" ;;
+        -l*)    PAF_action="list"    ; PAF_flag_list="$arg" ;;
+        -s*)    PAF_action="show"    ; PAF_flag_show="$arg" ;;
 
         -y) PAF_assume="yes" ;;
         -n) PAF_assume="no" ;;
 
-        *)  PAF_packages[${#PAF_packages[@]}]="$arg" ;;
+        *)
+            PAF_packages[${#PAF_packages[@]}]="$arg"
+            [[ -n "$PAF_action" ]] || PAF_action=search
+            ;;
         esac
     done
 
@@ -941,7 +955,7 @@ apt-get:install() {
     local firstpackage
     firstpackage="${PAF_packages[0]}"
 
-    if args:has "-ip" "$@"; then
+    if [[ "$PAF_flag_install" = "-ip" ]]; then
         PAF_packages=("${PAF_packages[@]:1}")
 
         ppa:add "$firstpackage"
@@ -970,10 +984,20 @@ apt-get:show() {
 }
 
 apt-get:upgrade() {
-    if args:has "-gg" "$@" ; then
+    if [[ "$PAF_flag_upgrade" = "-gg" ]] ; then
         paf:sudo apt-get $(apt-get:assume) dist-upgrade
-    elif args:has "-gR" "$@"; then
+
+    elif [[ "$PAF_flag_upgrade" = "-gR" ]]; then
+        bincheck:has do-release-upgrade || {
+            if [[ "$(. /etc/os-release ; echo "$ID")" = ubuntu ]]; then
+                out:warn "'ubuntu-release-upgrader-core' required - installing ..."
+                apt-get install ubuntu-release-upgrader-core
+            else
+                out:fail "Only supported on Ubuntu"
+            fi
+        }
         paf:sudo do-release-upgrade $(apt-get:assume)
+
     else
         paf:sudo apt-get $(apt-get:assume) upgrade
     fi
@@ -1164,7 +1188,7 @@ zypper:assume() {
 }
 
 zypper:update() {
-    :
+    paf:sudo zypper $(zypper:assume) refresh
 }
 
 zypper:clean() {
@@ -1192,8 +1216,9 @@ zypper:show() {
 }
 
 zypper:upgrade() {
-    if args:has "-gR" "$@"; then
+    if [[ "$PAF_flag_upgrade" = "-gR" ]] ; then
         paf:sudo zypper $(zypper:assume) dist-upgrade
+
     else
         paf:sudo zypper $(zypper:assume) update
     fi
@@ -1202,6 +1227,74 @@ zypper:upgrade() {
 zypper:search() {
     zypper search "${PAF_packages[@]:-}" | less
 }
-# zypper.sh pacman.sh emerge.sh # To be implemented
+### pacman-specific options Usage:help-pacman
+#
+# -c<N> - when cleaning, keep N previous versions of packages
+#
+#   paf -c2
+#
+###/doc
+
+PAF_pacman_updated=false
+
+pacman:assume() {
+    if [[ "$PAF_assume" = yes ]]; then
+        echo "--noconfirm"
+    fi
+}
+
+pacman:update() {
+    paf:sudo pacman -Syy
+    PAF_pacman_updated=true
+}
+
+pacman:clean() {
+    local keepstring keepnum
+
+    bincheck:has paccache || {
+        out:warn "You need 'paccache' from 'pacman-contrib' to perform cleans. Installing ..."
+        pacman -S pacman-contrib
+    }
+    
+    keepnum="${PAF_flag_clean:2}"
+    if [[ "${keepnum:-}" =~ ^[0-9]+$ ]]; then
+        keepstring="k$keepnum"
+    fi
+
+    paf:sudo paccache $(pacman:assume) -r"${keepstring:-}" # `-rk1` to keep 1 recent level of packages
+}
+
+pacman:install() {
+    paf:sudo pacman $(pacman:assume) -S "${PAF_packages[@]:-}"
+}
+
+pacman:remove() {
+    paf:sudo pacman $(pacman:assume) -Rs "${PAF_packages[@]:-}"
+}
+
+pacman:list() {
+    pacman -Q | less || return 0
+}
+
+pacman:show() {
+    local package
+
+    for package in "${PAF_packages[@]:-}"; do
+        pacman -Si "$package" | less
+    done
+}
+
+pacman:upgrade() {
+    if [[ "$PAF_pacman_updated" = true ]]; then
+        paf:sudo pacman $(pacman:assume) -Su
+    else
+        paf:sudo pacman $(pacman:assume) -Syu
+    fi
+}
+
+pacman:search() {
+    pacman -Ss "${PAF_packages[@]:-}" | less
+}
+# emerge.sh # To be implemented
 
 runmain paf paf:main "$@"

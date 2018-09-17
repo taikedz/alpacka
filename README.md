@@ -1,6 +1,6 @@
 # alpacka
 
-Wrappers for package managers
+Wrapper for package managers - use the same commands on all systems.
 
 (C) Tai Kedzierski 2016-2018, licensed under the GNU General Public License v3
 
@@ -11,6 +11,8 @@ Wrappers for package managers
 
 And you're done.
 
+It installs to `/usr/local/bin` as the `paf` command (historical naming reasons lost...) and you just use it in the generally the same way on any of Ubuntu, Fedora, CentOS and SliTaz
+
 ### Dependecies
 
 You probably already have these, unless you're running in some pared-down environment - in which case, ensure the following are installed: `less`, `which`, `grep`, `sudo`, `bash`
@@ -18,8 +20,6 @@ You probably already have these, unless you're running in some pared-down enviro
 # What is it?
 
 The `alpacka` scripts are wrappers around popular package management commands (e.g. `apt`, `yum`, `dnf`, etc) allowing you to issue similar commands on any supported system.
-
-It installs to `/usr/local/bin` as the `paf` command (historical naming reasons lost...) and you just use it in the generally the same way on any of Ubuntu, Fedora, CentOS and SliTaz
 
 For example to install the `htop` and `tmux` commands on Fedora, run
 
@@ -33,11 +33,11 @@ To install them on Slitaz, run
 
 	paf -i htop tmux
 
-;-)
+`;-)`
 
 ## What command ....?
 
-Ever find yourself thinking, "was it `update` or `upgrade` I use here... and is it `install` or `add` or `gi` ...?"
+This is not limited to installation either. Ever find yourself thinking, "was it `update` or `upgrade` I use here... and is it `install` or `add` or `gi` ...?"
 
 `paf` allows you to just use a standard flag, and forget the details, and you can specify several in one go - for example, to install htop and tmux, after updating the package indeices, and perform a cleanup afterwards, automatically accepting... do:
 
@@ -45,19 +45,9 @@ Ever find yourself thinking, "was it `update` or `upgrade` I use here... and is 
 
 All actions will be carried out on Debian and Ubuntu, on Fedora the index update will be ignored. Less to think about.
 
-See [src/help.sh] for details on all standard flags.
+See [src/help.sh](src/help.sh) for details on all standard flags.
 
-## Supported package managers:
-
-* Debian APT
-* Ubuntu APT and PPAs
-* Fedora DNF
-* Red Hat YUM
-* Alpine APK
-* OpenSuSE Zypper
-* Slitaz Tazpkg
-
-## Warnings
+## Get warnings
 
 You can also set a warning for any action. Warnings are messages that are displayed before an action is carried out. For each warning, you get a 5 second grace period in which to press `Ctrl+C` to abort, or you can press return to immediately proceed.
 
@@ -73,11 +63,16 @@ To simply view a set warning:
 
     paf -w upgrade
 
-## Why?
+## Supported package managers:
 
-Because I am too lazy to remember which command has what option names; and in some cases to get over some limitations of the package manager itself.
-
-I also forget what servers need special attention when doing system upgrades. Hah.
+* Debian APT
+* Ubuntu APT and PPAs
+* Fedora DNF
+* Red Hat YUM
+* Alpine APK
+* Arch pacman
+* OpenSuSE Zypper
+* Slitaz Tazpkg
 
 # `pafs`
 

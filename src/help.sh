@@ -48,4 +48,5 @@
 # Remove
 #     
 #     paf -r PACKAGES ...
+###/doc
 

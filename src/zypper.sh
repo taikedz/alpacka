@@ -15,7 +15,7 @@ zypper:assume() {
 }
 
 zypper:update() {
-    :
+    paf:sudo zypper $(zypper:assume) refresh
 }
 
 zypper:clean() {
@@ -43,8 +43,9 @@ zypper:show() {
 }
 
 zypper:upgrade() {
-    if args:has "-gR" "$@"; then
+    if [[ "$PAF_flag_upgrade" = "-gR" ]] ; then
         paf:sudo zypper $(zypper:assume) dist-upgrade
+
     else
         paf:sudo zypper $(zypper:assume) update
     fi

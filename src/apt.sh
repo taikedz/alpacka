@@ -33,7 +33,7 @@ apt-get:install() {
     local firstpackage
     firstpackage="${PAF_packages[0]}"
 
-    if args:has "-ip" "$@"; then
+    if [[ "$PAF_flag_install" = "-ip" ]]; then
         PAF_packages=("${PAF_packages[@]:1}")
 
         ppa:add "$firstpackage"
@@ -62,10 +62,20 @@ apt-get:show() {
 }
 
 apt-get:upgrade() {
-    if args:has "-gg" "$@" ; then
+    if [[ "$PAF_flag_upgrade" = "-gg" ]] ; then
         paf:sudo apt-get $(apt-get:assume) dist-upgrade
-    elif args:has "-gR" "$@"; then
+
+    elif [[ "$PAF_flag_upgrade" = "-gR" ]]; then
+        bincheck:has do-release-upgrade || {
+            if [[ "$(. /etc/os-release ; echo "$ID")" = ubuntu ]]; then
+                out:warn "'ubuntu-release-upgrader-core' required - installing ..."
+                apt-get install ubuntu-release-upgrader-core
+            else
+                out:fail "Only supported on Ubuntu"
+            fi
+        }
         paf:sudo do-release-upgrade $(apt-get:assume)
+
     else
         paf:sudo apt-get $(apt-get:assume) upgrade
     fi
