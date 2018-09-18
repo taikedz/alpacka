@@ -33,8 +33,6 @@ paf:main() {
     paf:run_activity update
 
     if [[ -n "${PAF_action:-}" ]]; then
-        paf:warn "$PAF_action"
-
         # We pass "$@" in case it is needed
         #  but most actions just access ${PAF_packages[@]} directly
         "$PAF_pm:$PAF_action" "$@"
@@ -101,7 +99,6 @@ paf:add_activity() {
 paf:run_activity() {
     local activity="$1"
     if [[ "${PAF_activities[*]:-}" =~ "$activity" ]]; then
-        paf:warn "$activity"
         "$PAF_pm:$activity"
     fi
 }
@@ -147,6 +144,24 @@ paf:parse_arguments() {
     # blat the holders
     PAF_activities=("${PAF_activities[@]:1}")
     PAF_packages=("${PAF_packages[@]:1}")
+
+    # Issue all warnings in bulk as soon as we know our activities
+    #   so user sees them early
+    paf:issue_warnings "${PAF_activities[@]:-}" "$PAF_action"
+}
+
+paf:issue_warnings() {
+    local warning
+    PAF_warned=false
+
+    for warning in "$@"; do
+        [[ -n "$warning" ]] || continue
+        paf:warn:display "$warning"
+    done
+
+    if [[ "$PAF_warned" = true ]]; then
+        paf:warn:grace-wait
+    fi
 }
 
 #%include apt.sh dnf.sh tazpkg.sh apk.sh zypper.sh pacman.sh

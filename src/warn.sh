@@ -25,16 +25,21 @@ PAF_warningdir="$PAF_configdir/warnings"
 
 paf:warn() {
     local err=0
-    local sleepsec="${PAF_warning_sleep:-5}"
     [[ "$sleepsec" =~ ^[0-9]+$ ]] || out:fail "Warning sleep duration is not an int: $sleepsec"
 
     if paf:warn:display "${1:-}"; then
-        out:info "Press Ctrl+C within  $sleepsec seconds to abort, or Enter to continue ..."
+        paf:warn:grace-wait || out:fail "Error while waiting to continue ..."
+    fi
+}
 
-        read -t $sleepsec || err="$?"
-        if [[ "$err" = 0 ]] || [[ "$err" -ge 128 ]]; then
-            return 0
-        fi
+paf:warn:grace-wait() {
+    local sleepsec="${PAF_warning_sleep:-5}"
+
+    out:info "Press Ctrl+C within  $sleepsec seconds to abort, or Enter to continue ..."
+
+    read -t $sleepsec || err="$?"
+    if [[ "$err" = 0 ]] || [[ "$err" -ge 128 ]]; then
+        return 0
     fi
 }
 
@@ -58,12 +63,14 @@ paf:warn:display() {
     local warnfile
     warnfile="$PAF_warningdir/${1}.txt"
 
-    paf:warn:is-set "$warnfile" || return 1
+    paf:warn:is-set "$warnfile" || return 0 # not an error - if not set, ignore step
 
     echo -n "$CBYEL" >&2
     cat "$warnfile"
     echo
     echo -n "$CDEF" >&2
+
+    PAF_warned=true
 
     return 0
 }
@@ -88,10 +95,10 @@ paf:warn:write() {
     if [[ "$PAF_warnmessage" = "." ]]; then
         echo -n > "$PAF_warnpath"
     else
-        echo -n "$PAF_warntype message: ${PAF_warnmessage}" > "$PAF_warnpath"
+        echo -n "<$PAF_warntype>: ${PAF_warnmessage}" > "$PAF_warnpath"
     fi
 
-    out:info "Warning wwritten to $PAF_warnpath"
+    out:info "Warning written to $PAF_warnpath"
 }
 
 paf:warn:warn-set() {
