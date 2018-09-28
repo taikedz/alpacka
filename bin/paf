@@ -801,10 +801,10 @@ paf:warn() {
 paf:warn:grace-wait() {
     local sleepsec="${PAF_warning_sleep:-5}"
 
-    out:info "Press Ctrl+C within  $sleepsec seconds to abort, or Enter to continue ..."
+    out:info "Press Ctrl+C within $sleepsec seconds to abort, or Enter to continue ..."
 
     read -t $sleepsec || err="$?"
-    if [[ "$err" = 0 ]] || [[ "$err" -ge 128 ]]; then
+    if [[ -z "${err:-}" ]] || [[ "$err" -ge 128 ]]; then
         return 0
     fi
 }
