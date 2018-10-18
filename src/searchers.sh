@@ -28,7 +28,7 @@ function doupdate {
 }
 
 function findpkg {
-    EXT=".$1" ; shift
+    EXT="$1" ; shift
     locate "$ARG1" | egrep "^${HOME}/.+$EXT\$"
 }
 

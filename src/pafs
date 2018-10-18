@@ -4,7 +4,7 @@ set -u
 
 #%include search-help.sh
 
-#%include autohelp.sh out.sh debug.sh bincheck.sh
+#%include autohelp.sh out.sh debug.sh bincheck.sh readkv.sh
 
 #%include searchers.sh
 
@@ -17,6 +17,7 @@ ARG1=
 FILTER=.
 : "${EXCLUDED_MANAGERS=}"
 PAFS_PAGER=(less -R)
+PAFS_config=/etc/alpacka/config.ini
 
 while [[ -n "$@" ]]; do
     ARG="$1" ; shift
@@ -51,24 +52,21 @@ while [[ -n "$@" ]]; do
 done
 
 # Read configuration plain
-EXCLUDED_MANAGERS="${EXCLUDED_MANAGERS:-} $(readkv pafs_exclude /etc/alpacka/config.ini)"
+if [[ -f "$PAFS_config" ]]; then
+    EXCLUDED_MANAGERS="${EXCLUDED_MANAGERS:-} $(readkv pafs_exclude "$PAFS_config")"
+fi
 
 [[ -n "${ARGS[*]+ARGS[*]}" ]] || out:fail "No search term provided"
 
 ARG1="${ARGS[@]}"
 debug:print "ARG1=$ARG1"
 
-if [[ -z "$ARGS" ]]; then
-    out:fail "You must supply at least one package name to search."
-fi
-
-#SFILE="/tmp/searchfile_$(date "+%F%T"|md5sum|cut -d' ' -f1)"
 SFILE="$(mktemp)" || out:fail "Cannot create temp file"
 
 if is_not_excluded os; then
     if trypkg paf; then
         doupdate paf -u
-        searchit paf paf "$ARGS"
+        searchit paf paf "${ARGS[@]}"
 
     elif trypkg emerge; then
         doupdate emerge sync
@@ -77,21 +75,21 @@ if is_not_excluded os; then
 fi
 
 if is_not_excluded externals; then
-    trypkg snap && searchit snap snap find "$ARGS"
+    trypkg snap && searchit snap snap find "${ARGS[@]}"
 
     trypkg flatpak && {
         doupdate flatpak update
-        searchit flatpak flatpak search "$ARGS"
+        searchit flatpak flatpak search "${ARGS[@]}"
     }
 fi
 
 if is_not_excluded langs; then
-    trypkg pip && searchit pip pip search "$ARGS"
-    trypkg gem && searchit gem gem search "$ARGS"
-    trypkg npm && searchit npm npm search "$ARGS"
+    trypkg pip && searchit pip pip search "${ARGS[@]}"
+    trypkg gem && searchit gem gem search "${ARGS[@]}"
+    trypkg npm && searchit npm npm search "${ARGS[@]}"
     trypkg docpan && searchit cpan docpan "$ARG1"
-    trypkg pear && searchit pear pear search "$ARGS"
-    trypkg cargo && searchit cargo cargo search "$ARGS"
+    trypkg pear && searchit pear pear search "${ARGS[@]}"
+    trypkg cargo && searchit cargo cargo search "${ARGS[@]}"
 fi
 
 # ================
@@ -101,23 +99,23 @@ if trypkg docker; then
     searchit Docker docker search "$ARG1"
 fi
 
-is_not_excluded web && \
-if bincheck:has elinks; then
-    URLARG1="$(python -c "import urllib as u; print(u.quote('$ARG1'))")"
-    namepat="[a-zA-Z0-9_.-]+"
-    twonames="$namepat/$namepat"
+is_not_excluded web &&
+    if bincheck:has elinks; then
+        URLARG1="$(python -c "import urllib as u; print(u.quote('$ARG1'))")"
+        namepat="[a-zA-Z0-9_.-]+"
+        twonames="$namepat/$namepat"
 
-    is_not_excluded github && \
-        searchit github searchweb "github.com" "$URLARG1" "$twonames"
+        is_not_excluded github &&
+            searchit github searchweb "github.com" "$URLARG1" "$twonames"
 
-    is_not_excluded gitlab && \
-        searchit gitlab searchweb "gitlab.com" "$URLARG1" "$twonames"
+        is_not_excluded gitlab &&
+            searchit gitlab searchweb "gitlab.com" "$URLARG1" "$twonames"
 
-    is_not_excluded vagrant && \
-        searchit vagrant searchweb "app.vagrantup.com" "$URLARG1" "$twonames"
-else
-    out:warn "'elinks' is required for searching the web"
-fi
+        is_not_excluded vagrant &&
+            searchit vagrant searchweb "app.vagrantup.com" "$URLARG1" "$twonames"
+    else
+        out:warn "'elinks' is required for searching the web"
+    fi
 
 
 # ===============
@@ -125,14 +123,16 @@ fi
 if is_not_excluded local; then
     searchit "Local buildables" findpkg 'Makefile|install\.sh'
 
-    # package maangement locally
+    # package management locally
+    # findpkg looks for $ARG1 on its own
 
-    trypkg dpkg yum dnf && searchit "Local RPM files" findpkg ".rpm"
+    trypkg dpkg yum dnf && searchit "Local RPM files" findpkg "\.rpm"
 
-    trypkg dpkg && searchit "Local deb files" findpkg ".deb"
+    trypkg dpkg && searchit "Local deb files" findpkg "\.deb"
 fi
 
 # ===========
 
 "${PAFS_PAGER[@]}" "$SFILE"
+
 rm "$SFILE"

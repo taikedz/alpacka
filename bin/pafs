@@ -72,14 +72,19 @@ set -u
 #
 ###/doc
 
-##bash-libs: autohelp.sh @ f6496eca (1.1.4)
 
-### autohelp:print [ SECTION [FILE] ] Usage:bbuild
+##bash-libs: autohelp.sh @ cb35065f (1.4)
+
+### Autohelp Usage:bbuild
+#
+# Autohelp provides some simple facilities for defining help as comments in your code.
+# It provides several functions for printing specially formatted comment sections.
+#
 # Write your help as documentation comments in your script
 #
-# If you need to output the help from your script, or a file, call the
+# To output a named section from your script, or a file, call the
 # `autohelp:print` function and it will print the help documentation
-# in the current script to stdout
+# in the current script, or specified file, to stdout
 #
 # A help comment looks like this:
 #
@@ -92,7 +97,11 @@ set -u
 #    #
 #    ###/doc
 #
-# You can set a different help section by specifying a subsection
+# It can then be printed from the same script by simply calling
+#
+#   autohelp:print
+#
+# You can print a different section by specifying a different name
 #
 # 	autohelp:print section2
 #
@@ -102,43 +111,112 @@ set -u
 # 	# <some content>
 # 	###/doc
 #
-# You can set a different comment character by setting the 'HELPCHAR' environment variable:
+# You can set a different comment character by setting the 'HELPCHAR' environment variable.
+# Typically, you might want to print comments you set in a INI config file, for example
 #
-# 	HELPCHAR=%
+# 	HELPCHAR=";" autohelp:print help config-file.ini
+# 
+# Which would then find comments defined like this in `config-file.ini`:
 #
+#   ;;; Main config Usage:help
+#   ; Help comments in a config file
+#   ; may start with a different comment character
+#   ;;;/doc
+#
+#
+#
+# Example usage in a multi-function script:
+#
+#   #!/bin/bash
+#
+#   ### Main help Usage:help
+#   # The main help
+#   ###/doc
+#
+#   ### Feature One Usage:feature_1
+#   # Help text for the first feature
+#   ###/doc
+#
+#   feature1() {
+#       autohelp:check_section feature_1 "$@"
+#       echo "Feature I"
+#   }
+#
+#   ### Feature Two Usage:feature_2
+#   # Help text for the second feature
+#   ###/doc
+#
+#   feature2() {
+#       autohelp:check_section feature_2 "$@"
+#       echo "Feature II"
+#   }
+#
+#   main() {
+#       if [[ -z "$*" ]]; then
+#           ### No command specified Usage:no-command
+#           #No command specified. Try running with `--help`
+#           ###/doc
+#
+#           autohelp:print no-command
+#           exit 1
+#       fi
+#
+#       case "$1" in
+#       feature1|feature2)
+#           "$1" "$@"            # Pass the global script arguments through
+#           ;;
+#       *)
+#           autohelp:check "$@"  # Check if main help was asked for, if so, exits
+#
+#           # Main help not requested, return error
+#           echo "Unknown feature"
+#           exit 1
+#           ;;
+#       esac
+#   }
+#
+#   main "$@"
+#
+###/doc
+
+### autohelp:print [ SECTION [FILE] ] Usage:bbuild
+# Print the specified section, in the specified file.
+#
+# If no file is specified, prints for current script file.
+# If no section is specified, defaults to "help"
 ###/doc
 
 HELPCHAR='#'
 
-function autohelp:print {
-    local SECTION_STRING="${1:-}"; shift || :
-    local TARGETFILE="${1:-}"; shift || :
-    [[ -n "$SECTION_STRING" ]] || SECTION_STRING=help
-    [[ -n "$TARGETFILE" ]] || TARGETFILE="$0"
+autohelp:print() {
+    local input_line
+    local section_string="${1:-}"; shift || :
+    local target_file="${1:-}"; shift || :
+    [[ -n "$section_string" ]] || section_string=help
+    [[ -n "$target_file" ]] || target_file="$0"
 
-        echo -e "\n$(basename "$TARGETFILE")\n===\n"
-        local SECSTART='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s+(.+?)\s+Usage:'"$SECTION_STRING"'\s*$'
-        local SECEND='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s*/doc\s*$'
-        local insec=false
+    #echo -e "\n$(basename "$target_file")\n===\n"
+    local sec_start='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s+(.+?)\s+Usage:'"$section_string"'\s*$'
+    local sec_end='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s*/doc\s*$'
+    local in_section=false
 
-        while read secline; do
-                if [[ "$secline" =~ $SECSTART ]]; then
-                        insec=true
-                        echo -e "\n${BASH_REMATCH[1]}\n---\n"
+    while read input_line; do
+        if [[ "$input_line" =~ $sec_start ]]; then
+            in_section=true
+            echo -e "\n${BASH_REMATCH[1]}\n======="
 
-                elif [[ "$insec" = true ]]; then
-                        if [[ "$secline" =~ $SECEND ]]; then
-                                insec=false
-                        else
-                echo "$secline" | sed -r "s/^\s*$HELPCHAR//g"
-                        fi
-                fi
-        done < "$TARGETFILE"
-
-        if [[ "$insec" = true ]]; then
-                echo "WARNING: Non-terminated help block." 1>&2
+        elif [[ "$in_section" = true ]]; then
+            if [[ "$input_line" =~ $sec_end ]]; then
+                in_section=false
+            else
+                echo "$input_line" | sed -r "s/^\s*$HELPCHAR/ /;s/^  (\S)/\1/"
+            fi
         fi
-    echo ""
+    done < "$target_file"
+
+    if [[ "$in_section" = true ]]; then
+            out:fail "Non-terminated help block."
+    fi
 }
 
 ### autohelp:paged Usage:bbuild
@@ -146,67 +224,77 @@ function autohelp:print {
 # Display the help in the pager defined in the PAGER environment variable
 #
 ###/doc
-function autohelp:paged {
+autohelp:paged() {
     : ${PAGER=less}
     autohelp:print "$@" | $PAGER
 }
 
-### autohelp:check Usage:bbuild
+### autohelp:check ARGS ... Usage:bbuild
 #
-# Automatically print help and exit if "--help" is detected in arguments
-#
-# Example use:
-#
-#    #!/bin/bash
-#
-#    ### Some help Usage:help
-#    #
-#    # Some help text
-#    #
-#    ###/doc
-#
-#    #%include autohelp.sh
-#
-#    main() {
-#        autohelp:check "$@"
-#
-#        # now add your code
-#    }
-#
-#    main "$@"
+# Automatically print "help" sections and exit, if "--help" is detected in arguments
 #
 ###/doc
 autohelp:check() {
-    if [[ "$*" =~ --help ]]; then
-        cols="$(tput cols)"
-        autohelp:print | fold -w "$cols" -s || autohelp:print
-        exit 0
-    fi
+    autohelp:check_section "help" "$@"
 }
-##bash-libs: out.sh @ f6496eca (1.1.4)
 
-##bash-libs: colours.sh @ f6496eca (1.1.4)
+### autohelp:check_section SECTION ARGS ... Usage:bbuild
+# Automatically print documentation for named section and exit, if "--help" is detected in arguments
+#
+###/doc
+autohelp:check_section() {
+    local section arg
+    section="${1:-}"; shift || out:fail "No help section specified"
 
-### Colours for bash Usage:bbuild
-# A series of colour flags for use in outputs.
+    for arg in "$@"; do
+        if [[ "$arg" =~ --help ]]; then
+            cols="$(tput cols)"
+            autohelp:print "$section" | fold -w "$cols" -s || autohelp:print "$section"
+            exit 0
+        fi
+    done
+}
+##bash-libs: out.sh @ cb35065f (1.4)
+
+##bash-libs: colours.sh @ cb35065f (1.4)
+
+### Colours for terminal Usage:bbuild
+# A series of shorthand colour flags for use in outputs, and functions to set your own flags.
+#
+# Not all terminals support all colours or modifiers.
 #
 # Example:
 # 	
-# 	echo -e "${CRED}Some red text ${CBBLU} some blue text $CDEF some text in the terminal's default colour")
+# 	echo "${CRED}Some red text ${CBBLU} some blue text. $CDEF Some text in the terminal's default colour")
 #
-# Requires processing of escape characters.
+# Preconfigured colours available:
 #
-# Colours available:
+# CRED, CBRED, HLRED -- red, bright red, highlight red
+# CGRN, CBGRN, HLGRN -- green, bright green, highlight green
+# CYEL, CBYEL, HLYEL -- yellow, bright yellow, highlight yellow
+# CBLU, CBBLU, HLBLU -- blue, bright blue, highlight blue
+# CPUR, CBPUR, HLPUR -- purple, bright purple, highlight purple
+# CTEA, CBTEA, HLTEA -- teal, bright teal, highlight teal
+# CBLA, CBBLA, HLBLA -- black, bright red, highlight red
+# CWHI, CBWHI, HLWHI -- white, bright red, highlight red
 #
-# CRED, CBRED, HLRED -- red, bold red, highlight red
-# CGRN, CBGRN, HLGRN -- green, bold green, highlight green
-# CYEL, CBYEL, HLYEL -- yellow, bold yellow, highlight yellow
-# CBLU, CBBLU, HLBLU -- blue, bold blue, highlight blue
-# CPUR, CBPUR, HLPUR -- purple, bold purple, highlight purple
-# CTEA, CBTEA, HLTEA -- teal, bold teal, highlight teal
+# Modifiers available:
 #
-# CDEF -- switches to the terminal default
-# CUNL -- add underline
+# CBON - activate bright
+# CDON - activate dim
+# ULON - activate underline
+# RVON - activate reverse (switch foreground and background)
+# SKON - activate strikethrough
+# 
+# Resets available:
+#
+# CNORM -- turn off bright or dim, without affecting other modifiers
+# ULOFF -- turn off highlighting
+# RVOFF -- turn off inverse
+# SKOFF -- turn off strikethrough
+# HLOFF -- turn off highlight
+#
+# CDEF -- turn off all colours and modifiers(switches to the terminal default)
 #
 # Note that highlight and underline must be applied or re-applied after specifying a colour.
 #
@@ -215,7 +303,7 @@ autohelp:check() {
 #
 ###/doc
 
-##bash-libs: tty.sh @ f6496eca (1.1.4)
+##bash-libs: tty.sh @ cb35065f (1.4)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -225,10 +313,18 @@ tty:is_pipe() {
     [[ ! -t 1 ]]
 }
 
-### colours:check ARGS Usage:bbuild
+### colours:check ARGS ... Usage:bbuild
 #
 # Check the args to see if there's a `--color=always` or `--color=never`
 #   and reload the colours appropriately
+#
+#   main() {
+#       colours:check "$@"
+#
+#       echo "${CGRN}Green only in tty or if --colours=always !${CDEF}"
+#   }
+#
+#   main "$@"
 #
 ###/doc
 colours:check() {
@@ -242,6 +338,74 @@ colours:check() {
     return 0
 }
 
+### colours:set CODE Usage:bbuild
+# Set an explicit colour code - e.g.
+#
+#   echo "$(colours:set "33;2")Dim yellow text${CDEF}"
+#
+# See SGR Colours definitions
+#   <https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters>
+###/doc
+colours:set() {
+    # We use `echo -e` here rather than directly embedding a binary character
+    if [[ "$COLOURS_ON" = false ]]; then
+        return 0
+    else
+        echo -e "\033[${1}m"
+    fi
+}
+
+colours:define() {
+
+    # Shorthand colours
+
+    export CBLA="$(colours:set "21;30")"
+    export CRED="$(colours:set "21;31")"
+    export CGRN="$(colours:set "21;32")"
+    export CYEL="$(colours:set "21;33")"
+    export CBLU="$(colours:set "21;34")"
+    export CPUR="$(colours:set "21;35")"
+    export CTEA="$(colours:set "21;36")"
+    export CWHI="$(colours:set "21;37")"
+
+    export CBBLA="$(colours:set "1;30")"
+    export CBRED="$(colours:set "1;31")"
+    export CBGRN="$(colours:set "1;32")"
+    export CBYEL="$(colours:set "1;33")"
+    export CBBLU="$(colours:set "1;34")"
+    export CBPUR="$(colours:set "1;35")"
+    export CBTEA="$(colours:set "1;36")"
+    export CBWHI="$(colours:set "1;37")"
+
+    export HLBLA="$(colours:set "40")"
+    export HLRED="$(colours:set "41")"
+    export HLGRN="$(colours:set "42")"
+    export HLYEL="$(colours:set "43")"
+    export HLBLU="$(colours:set "44")"
+    export HLPUR="$(colours:set "45")"
+    export HLTEA="$(colours:set "46")"
+    export HLWHI="$(colours:set "47")"
+
+    # Modifiers
+    
+    export CBON="$(colours:set "1")"
+    export CDON="$(colours:set "2")"
+    export ULON="$(colours:set "4")"
+    export RVON="$(colours:set "7")"
+    export SKON="$(colours:set "9")"
+
+    # Resets
+
+    export CBNRM="$(colours:set "22")"
+    export HLOFF="$(colours:set "49")"
+    export ULOFF="$(colours:set "24")"
+    export RVOFF="$(colours:set "27")"
+    export SKOFF="$(colours:set "29")"
+
+    export CDEF="$(colours:set "0")"
+
+}
+
 colours:auto() {
     if tty:is_pipe ; then
         COLOURS_ON=false
@@ -251,60 +415,6 @@ colours:auto() {
 
     colours:define
     return 0
-}
-
-colours:define() {
-    if [[ "$COLOURS_ON" = false ]]; then
-
-        export CRED=''
-        export CGRN=''
-        export CYEL=''
-        export CBLU=''
-        export CPUR=''
-        export CTEA=''
-
-        export CBRED=''
-        export CBGRN=''
-        export CBYEL=''
-        export CBBLU=''
-        export CBPUR=''
-        export CBTEA=''
-
-        export HLRED=''
-        export HLGRN=''
-        export HLYEL=''
-        export HLBLU=''
-        export HLPUR=''
-        export HLTEA=''
-
-        export CDEF=''
-
-    else
-
-        export CRED=$(echo -e "\033[0;31m")
-        export CGRN=$(echo -e "\033[0;32m")
-        export CYEL=$(echo -e "\033[0;33m")
-        export CBLU=$(echo -e "\033[0;34m")
-        export CPUR=$(echo -e "\033[0;35m")
-        export CTEA=$(echo -e "\033[0;36m")
-
-        export CBRED=$(echo -e "\033[1;31m")
-        export CBGRN=$(echo -e "\033[1;32m")
-        export CBYEL=$(echo -e "\033[1;33m")
-        export CBBLU=$(echo -e "\033[1;34m")
-        export CBPUR=$(echo -e "\033[1;35m")
-        export CBTEA=$(echo -e "\033[1;36m")
-
-        export HLRED=$(echo -e "\033[41m")
-        export HLGRN=$(echo -e "\033[42m")
-        export HLYEL=$(echo -e "\033[43m")
-        export HLBLU=$(echo -e "\033[44m")
-        export HLPUR=$(echo -e "\033[45m")
-        export HLTEA=$(echo -e "\033[46m")
-
-        export CDEF=$(echo -e "\033[0m")
-
-    fi
 }
 
 colours:auto
@@ -394,7 +504,8 @@ function out:fail {
 function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
-#%import colour.sh
+##bash-libs: debug.sh @ cb35065f (1.4)
+
 
 ### Debug lib Usage:bbuild
 #
@@ -495,7 +606,7 @@ function debug:break {
         echo "${CBRED}ABORT${CDEF}"
     fi
 }
-##bash-libs: bincheck.sh @ f6496eca (1.1.4)
+##bash-libs: bincheck.sh @ cb35065f (1.4)
 
 ### bincheck:get COMMANDS ... Usage:bbuild
 #
@@ -567,6 +678,68 @@ bincheck:path() {
     
     } || echo "$binname"
 }
+##bash-libs: readkv.sh @ cb35065f (1.4)
+
+### Key Value Pair Reader Usage:bbuild
+#
+# Read a value given the key, from a specified file
+#
+###/doc
+
+### readkv KEY FILE [DEFAULT] Usage:bbuild
+#
+# The KEY is the key in the file. A key is identified as starting at the beginning of a line, and ending at the first '=' character
+#
+# The value starts immediately after the first '=' character.
+#
+# If no value is found, the DEFAULT value is returned, or an empty string
+#
+###/doc
+
+function readkv {
+    local thedefault thekey thefile
+    thekey="$1" ; shift
+    thefile="$1"; shift
+
+    if [[ -n "${1:-}" ]]; then
+        thedefault="$1"; shift || :
+    fi
+
+    local res="$(readkv:meaningful_data "$thefile"|grep -E "^$thekey"'\s*='|sed -r "s/^$thekey"'\s*=\s*//')"
+    if [[ -z "$res" ]]; then
+        echo "${thedefault:-}"
+    else
+        echo "$res"
+    fi
+}
+
+### readkv:require KEY FILE Usage:bbuild
+#
+# Like readkv, but causes a failure if the file does not exist.
+#
+###/doc
+
+function readkv:require {
+    if [[ -z "${2:-}" ]]; then
+        out:fail "No file specified to read [$*]"
+    fi
+
+    if [[ ! -f "$2" ]] ; then
+        out:fail "No such file $2 !"
+    fi
+
+    if ! head -n 1 "$2" > /dev/null; then
+        out:fail "Could not read $2"
+    fi
+    readkv "$@"
+}
+
+### readkv:meaningful_data FILE Usage:bbuild
+# Dump the file contents, stripping meaningless data (empty lines and comment lines)
+###/doc
+readkv:meaningful_data() {
+    grep -v -P '^\s*(#.*)?$' "$1"
+}
 
 function docpan {
     echo "m $1" | cpan
@@ -598,7 +771,7 @@ function doupdate {
 }
 
 function findpkg {
-    EXT=".$1" ; shift
+    EXT="$1" ; shift
     locate "$ARG1" | egrep "^${HOME}/.+$EXT\$"
 }
 
@@ -643,6 +816,7 @@ ARG1=
 FILTER=.
 : "${EXCLUDED_MANAGERS=}"
 PAFS_PAGER=(less -R)
+PAFS_config=/etc/alpacka/config.ini
 
 while [[ -n "$@" ]]; do
     ARG="$1" ; shift
@@ -677,24 +851,21 @@ while [[ -n "$@" ]]; do
 done
 
 # Read configuration plain
-EXCLUDED_MANAGERS="${EXCLUDED_MANAGERS:-} $(readkv pafs_exclude /etc/alpacka/config.ini)"
+if [[ -f "$PAFS_config" ]]; then
+    EXCLUDED_MANAGERS="${EXCLUDED_MANAGERS:-} $(readkv pafs_exclude "$PAFS_config")"
+fi
 
 [[ -n "${ARGS[*]+ARGS[*]}" ]] || out:fail "No search term provided"
 
 ARG1="${ARGS[@]}"
 debug:print "ARG1=$ARG1"
 
-if [[ -z "$ARGS" ]]; then
-    out:fail "You must supply at least one package name to search."
-fi
-
-#SFILE="/tmp/searchfile_$(date "+%F%T"|md5sum|cut -d' ' -f1)"
 SFILE="$(mktemp)" || out:fail "Cannot create temp file"
 
 if is_not_excluded os; then
     if trypkg paf; then
         doupdate paf -u
-        searchit paf paf "$ARGS"
+        searchit paf paf "${ARGS[@]}"
 
     elif trypkg emerge; then
         doupdate emerge sync
@@ -703,21 +874,21 @@ if is_not_excluded os; then
 fi
 
 if is_not_excluded externals; then
-    trypkg snap && searchit snap snap find "$ARGS"
+    trypkg snap && searchit snap snap find "${ARGS[@]}"
 
     trypkg flatpak && {
         doupdate flatpak update
-        searchit flatpak flatpak search "$ARGS"
+        searchit flatpak flatpak search "${ARGS[@]}"
     }
 fi
 
 if is_not_excluded langs; then
-    trypkg pip && searchit pip pip search "$ARGS"
-    trypkg gem && searchit gem gem search "$ARGS"
-    trypkg npm && searchit npm npm search "$ARGS"
+    trypkg pip && searchit pip pip search "${ARGS[@]}"
+    trypkg gem && searchit gem gem search "${ARGS[@]}"
+    trypkg npm && searchit npm npm search "${ARGS[@]}"
     trypkg docpan && searchit cpan docpan "$ARG1"
-    trypkg pear && searchit pear pear search "$ARGS"
-    trypkg cargo && searchit cargo cargo search "$ARGS"
+    trypkg pear && searchit pear pear search "${ARGS[@]}"
+    trypkg cargo && searchit cargo cargo search "${ARGS[@]}"
 fi
 
 # ================
@@ -727,23 +898,23 @@ if trypkg docker; then
     searchit Docker docker search "$ARG1"
 fi
 
-is_not_excluded web && \
-if bincheck:has elinks; then
-    URLARG1="$(python -c "import urllib as u; print(u.quote('$ARG1'))")"
-    namepat="[a-zA-Z0-9_.-]+"
-    twonames="$namepat/$namepat"
+is_not_excluded web &&
+    if bincheck:has elinks; then
+        URLARG1="$(python -c "import urllib as u; print(u.quote('$ARG1'))")"
+        namepat="[a-zA-Z0-9_.-]+"
+        twonames="$namepat/$namepat"
 
-    is_not_excluded github && \
-        searchit github searchweb "github.com" "$URLARG1" "$twonames"
+        is_not_excluded github &&
+            searchit github searchweb "github.com" "$URLARG1" "$twonames"
 
-    is_not_excluded gitlab && \
-        searchit gitlab searchweb "gitlab.com" "$URLARG1" "$twonames"
+        is_not_excluded gitlab &&
+            searchit gitlab searchweb "gitlab.com" "$URLARG1" "$twonames"
 
-    is_not_excluded vagrant && \
-        searchit vagrant searchweb "app.vagrantup.com" "$URLARG1" "$twonames"
-else
-    out:warn "'elinks' is required for searching the web"
-fi
+        is_not_excluded vagrant &&
+            searchit vagrant searchweb "app.vagrantup.com" "$URLARG1" "$twonames"
+    else
+        out:warn "'elinks' is required for searching the web"
+    fi
 
 
 # ===============
@@ -751,14 +922,16 @@ fi
 if is_not_excluded local; then
     searchit "Local buildables" findpkg 'Makefile|install\.sh'
 
-    # package maangement locally
+    # package management locally
+    # findpkg looks for $ARG1 on its own
 
-    trypkg dpkg yum dnf && searchit "Local RPM files" findpkg ".rpm"
+    trypkg dpkg yum dnf && searchit "Local RPM files" findpkg "\.rpm"
 
-    trypkg dpkg && searchit "Local deb files" findpkg ".deb"
+    trypkg dpkg && searchit "Local deb files" findpkg "\.deb"
 fi
 
 # ===========
 
 "${PAFS_PAGER[@]}" "$SFILE"
+
 rm "$SFILE"
