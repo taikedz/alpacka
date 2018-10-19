@@ -73,7 +73,7 @@ set -u
 ###/doc
 
 
-##bash-libs: autohelp.sh @ cb35065f (1.4)
+##bash-libs: autohelp.sh @ bf310b32 (1.4.1)
 
 ### Autohelp Usage:bbuild
 #
@@ -254,9 +254,17 @@ autohelp:check_section() {
         fi
     done
 }
-##bash-libs: out.sh @ cb35065f (1.4)
+##bash-libs: tty.sh @ bf310b32 (1.4.1)
 
-##bash-libs: colours.sh @ cb35065f (1.4)
+tty:is_ssh() {
+    [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
+}
+
+tty:is_pipe() {
+    [[ ! -t 1 ]]
+}
+
+##bash-libs: colours.sh @ bf310b32 (1.4.1)
 
 ### Colours for terminal Usage:bbuild
 # A series of shorthand colour flags for use in outputs, and functions to set your own flags.
@@ -302,16 +310,6 @@ autohelp:check_section() {
 #   You can override this by calling `colours:check --color=always` at the start of your script
 #
 ###/doc
-
-##bash-libs: tty.sh @ cb35065f (1.4)
-
-tty:is_ssh() {
-    [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
-}
-
-tty:is_pipe() {
-    [[ ! -t 1 ]]
-}
 
 ### colours:check ARGS ... Usage:bbuild
 #
@@ -359,14 +357,14 @@ colours:define() {
 
     # Shorthand colours
 
-    export CBLA="$(colours:set "21;30")"
-    export CRED="$(colours:set "21;31")"
-    export CGRN="$(colours:set "21;32")"
-    export CYEL="$(colours:set "21;33")"
-    export CBLU="$(colours:set "21;34")"
-    export CPUR="$(colours:set "21;35")"
-    export CTEA="$(colours:set "21;36")"
-    export CWHI="$(colours:set "21;37")"
+    export CBLA="$(colours:set "30")"
+    export CRED="$(colours:set "31")"
+    export CGRN="$(colours:set "32")"
+    export CYEL="$(colours:set "33")"
+    export CBLU="$(colours:set "34")"
+    export CPUR="$(colours:set "35")"
+    export CTEA="$(colours:set "36")"
+    export CWHI="$(colours:set "37")"
 
     export CBBLA="$(colours:set "1;30")"
     export CBRED="$(colours:set "1;31")"
@@ -418,6 +416,8 @@ colours:auto() {
 }
 
 colours:auto
+
+##bash-libs: out.sh @ bf310b32 (1.4.1)
 
 ### Console output handlers Usage:bbuild
 #
@@ -504,8 +504,8 @@ function out:fail {
 function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
-##bash-libs: debug.sh @ cb35065f (1.4)
 
+##bash-libs: debug.sh @ bf310b32 (1.4.1)
 
 ### Debug lib Usage:bbuild
 #
@@ -606,7 +606,7 @@ function debug:break {
         echo "${CBRED}ABORT${CDEF}"
     fi
 }
-##bash-libs: bincheck.sh @ cb35065f (1.4)
+##bash-libs: bincheck.sh @ bf310b32 (1.4.1)
 
 ### bincheck:get COMMANDS ... Usage:bbuild
 #
@@ -678,7 +678,7 @@ bincheck:path() {
     
     } || echo "$binname"
 }
-##bash-libs: readkv.sh @ cb35065f (1.4)
+##bash-libs: readkv.sh @ bf310b32 (1.4.1)
 
 ### Key Value Pair Reader Usage:bbuild
 #
