@@ -2,7 +2,7 @@
 
 set -u
 
-#%include search-help.sh
+#%include search-help.sh copyright.sh
 
 #%include autohelp.sh out.sh debug.sh bincheck.sh readkv.sh
 

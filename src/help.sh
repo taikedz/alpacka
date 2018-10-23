@@ -1,12 +1,11 @@
-
-### Uniform Package Management Wrapper Usage:help
+### Alpacka: Uniform Package Management Wrapper Usage:help
 # 
 # The `paf` command is a shorthand to allow use of a single package management command across distros.
 #
-#
 # Whether you are runing Ubuntu, Fedora, Arch or other, these commands will all work, and perform the equivalent expected actions.
 #
-# ## ACTIVITIES AND OPTIONS
+# ACTIVITIES AND OPTIONS
+# ----------------------
 #
 # Some package managers support independent activites to run before and after main actions.
 #

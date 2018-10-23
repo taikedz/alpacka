@@ -29,6 +29,16 @@ set -u
 #
 ###/doc
 
+### Alpacka Usage:help
+#
+# (C) Tai Kedzierski
+# https://github.com/taikedz/alpacka
+#
+# Provided under the terms of the GPL v3
+# (GNU General Public Licesne version 3)
+###/doc
+
+
 ##bash-libs: tty.sh @ bf310b32 (1.4.1)
 
 tty:is_ssh() {

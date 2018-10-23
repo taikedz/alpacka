@@ -4,7 +4,7 @@ set -euo pipefail
 
 PAF_configdir="/etc/alpacka"
 
-#%include help.sh
+#%include help.sh copyright.sh
 
 #%include autohelp.sh bincheck.sh args.sh runmain.sh out.sh readkv.sh
 #%include warn.sh

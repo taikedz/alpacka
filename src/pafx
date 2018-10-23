@@ -29,6 +29,8 @@ set -u
 #
 ###/doc
 
+#%include copyright.sh
+
 #%include out.sh autohelp.sh bincheck.sh
 
 autohelp:check "$@"
