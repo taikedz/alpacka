@@ -2,14 +2,20 @@
 
 set -euo pipefail
 
+#%include autohelp.sh bincheck.sh args.sh runmain.sh out.sh readkv.sh
+
 PAF_configdir="/etc/alpacka"
 
+#%include warn.sh
 #%include help.sh copyright.sh
 
-#%include autohelp.sh bincheck.sh args.sh runmain.sh out.sh readkv.sh
-#%include warn.sh
-
 paf:main() {
+    if [[ "$1" = wait ]]; then
+        shift
+        paf:wait "$@"
+        exit
+    fi
+
     PAF_activities=(:)
     PAF_packages=(:)
     PAF_sources=(:)
@@ -67,14 +73,24 @@ paf:help() {
 }
 
 paf:sudo() {
+    local cmds=(:)
     if bincheck:has sudo; then
-        sudo "$@"
-        return "$?"
+        cmds+=(sudo)
     else
         [[ "$UID" = 0 ]] || out:fail "No sudo, and you are not root"
-
-        "$@"
     fi
+
+    # tmux MUST be inside sudo - do not leave a rooted tmux in unpriveleged space!
+    if [[ "$TERM" != screen ]] && bincheck:has tmux; then
+        cmds+=(tmux new bash "$0" wait)
+    fi
+
+    "${cmds[@]:1}" "$@"
+}
+
+paf:wait() {
+    "$@"
+    read -p "Press Enter to finish ... "
 }
 
 paf:get_package_manager() {

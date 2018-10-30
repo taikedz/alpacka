@@ -84,7 +84,7 @@ apt-get:has-release-upgrade() {
     bincheck:has do-release-upgrade || {
         if [[ "$(. /etc/os-release ; echo "$ID")" = ubuntu ]]; then
             out:warn "'ubuntu-release-upgrader-core' required - installing ..."
-            apt-get install ubuntu-release-upgrader-core
+            paf:sudo apt-get install ubuntu-release-upgrader-core
         else
             out:fail "Only supported on Ubuntu"
         fi

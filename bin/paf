@@ -2,91 +2,8 @@
 
 set -euo pipefail
 
-PAF_configdir="/etc/alpacka"
 
-### Alpacka: Uniform Package Management Wrapper Usage:help
-# 
-# The `paf` command is a shorthand to allow use of a single package management command across distros.
-#
-# Whether you are runing Ubuntu, Fedora, Arch or other, these commands will all work, and perform the equivalent expected actions.
-#
-# ACTIVITIES AND OPTIONS
-# ----------------------
-#
-# Some package managers support independent activites to run before and after main actions.
-#
-#     -u
-#         update the package database
-#
-#     -c
-#         clean up interim packages and cache
-#
-#     -y
-#         assume yes
-#
-# ACTIONS
-# -------
-#
-# Only one action can be run at a time. The last one specified will be run. For example
-#
-#   paf -s htop
-#
-# would show info for htop, whereas
-#
-#   paf -s htop -i
-#
-# would install it.
-#
-#
-#
-# Search for keywords:
-#
-#    paf KEYWORDS ...
-#
-# Show info on each package
-#
-#    paf -s PACKAGES ...
-#
-# Install
-#
-#    paf -i PACKAGES ...
-#
-# Remove
-#     
-#     paf -r PACKAGES ...
-#
-#
-#
-#
-# Examples
-# --------
-#
-# Install 3 packages, after updating the package index if applicable:
-#
-#   paf -u -i htop vim tmux
-#
-# Perform a system upgrade, after upgrading the package index (if applicable):
-#
-#   paf -u -g
-#
-# Clean out package manager cache:
-#
-#   paf -c
-#
-###/doc
-
-### Alpacka Usage:help
-#
-# (C) Tai Kedzierski
-# https://github.com/taikedz/alpacka
-#
-# Provided under the terms of the GPL v3
-# (GNU General Public Licesne version 3)
-###/doc
-
-
-
-##bash-libs: autohelp.sh @ bf310b32 (1.4.1)
+##bash-libs: autohelp.sh @ 82f638b0 (after 1.4.1)
 
 ### Autohelp Usage:bbuild
 #
@@ -140,7 +57,7 @@ PAF_configdir="/etc/alpacka"
 #
 # Example usage in a multi-function script:
 #
-#   #!/bin/bash
+#   #!usr/bin/env bash
 #
 #   ### Main help Usage:help
 #   # The main help
@@ -151,7 +68,7 @@ PAF_configdir="/etc/alpacka"
 #   ###/doc
 #
 #   feature1() {
-#       autohelp:check_section feature_1 "$@"
+#       autohelp:check:section feature_1 "$@"
 #       echo "Feature I"
 #   }
 #
@@ -160,26 +77,17 @@ PAF_configdir="/etc/alpacka"
 #   ###/doc
 #
 #   feature2() {
-#       autohelp:check_section feature_2 "$@"
+#       autohelp:check:section feature_2 "$@"
 #       echo "Feature II"
 #   }
 #
 #   main() {
-#       if [[ -z "$*" ]]; then
-#           ### No command specified Usage:no-command
-#           #No command specified. Try running with `--help`
-#           ###/doc
-#
-#           autohelp:print no-command
-#           exit 1
-#       fi
-#
 #       case "$1" in
 #       feature1|feature2)
 #           "$1" "$@"            # Pass the global script arguments through
 #           ;;
 #       *)
-#           autohelp:check "$@"  # Check if main help was asked for, if so, exits
+#           autohelp:check-no-null "$@"  # Check if main help was asked for, if so, or if no args, exit with help
 #
 #           # Main help not requested, return error
 #           echo "Unknown feature"
@@ -242,20 +150,47 @@ autohelp:paged() {
     autohelp:print "$@" | $PAGER
 }
 
+### autohelp:check-or-null ARGS ... Usage:bbuild
+# Print help if arguments are empty, or if arguments contain a '--help' token
+#
+###/doc
+autohelp:check-or-null() {
+    if [[ -z "$*" ]]; then
+        autohelp:print help "$0"
+        exit 0
+    else
+        autohelp:check:section "help" "$@"
+    fi
+}
+
+### autohelp:check-or-null:section SECTION ARGS ... Usage:bbuild
+# Print help selction if arguments are empty, or if arguments contain a '--help' token
+#
+###/doc
+autohelp:check-or-null() {
+    . <(args:use:local section -- "$@") ; 
+    if [[ -z "$*" ]]; then
+        autohelp:print "$section" "$0"
+        exit 0
+    else
+        autohelp:check:section "$section" "$@"
+    fi
+}
+
 ### autohelp:check ARGS ... Usage:bbuild
 #
 # Automatically print "help" sections and exit, if "--help" is detected in arguments
 #
 ###/doc
 autohelp:check() {
-    autohelp:check_section "help" "$@"
+    autohelp:check:section "help" "$@"
 }
 
-### autohelp:check_section SECTION ARGS ... Usage:bbuild
+### autohelp:check:section SECTION ARGS ... Usage:bbuild
 # Automatically print documentation for named section and exit, if "--help" is detected in arguments
 #
 ###/doc
-autohelp:check_section() {
+autohelp:check:section() {
     local section arg
     section="${1:-}"; shift || out:fail "No help section specified"
 
@@ -267,7 +202,7 @@ autohelp:check_section() {
         fi
     done
 }
-##bash-libs: bincheck.sh @ bf310b32 (1.4.1)
+##bash-libs: bincheck.sh @ 82f638b0 (after 1.4.1)
 
 ### bincheck:get COMMANDS ... Usage:bbuild
 #
@@ -339,7 +274,7 @@ bincheck:path() {
     
     } || echo "$binname"
 }
-##bash-libs: patterns.sh @ bf310b32 (1.4.1)
+##bash-libs: patterns.sh @ 82f638b0 (after 1.4.1)
 
 ### Useful patterns Usage:bbuild
 #
@@ -364,7 +299,7 @@ export PAT_cvar='^[a-zA-Z_][a-zA-Z0-9_]*$'
 export PAT_filename='^[a-zA-Z0-9_.-]$'
 export PAT_email="$PAT_filename@$PAT_filename.$PAT_cvar"
 
-##bash-libs: args.sh @ bf310b32 (1.4.1)
+##bash-libs: args.sh @ 82f638b0 (after 1.4.1)
 
 ### args Usage:bbuild
 #
@@ -588,7 +523,7 @@ args:use() {
 args:use:local() {
     ARGSLIB_scope=local args:use "$@"
 }
-##bash-libs: runmain.sh @ bf310b32 (1.4.1)
+##bash-libs: runmain.sh @ 82f638b0 (after 1.4.1)
 
 ### runmain SCRIPTNAME FUNCTION [ARGUMENTS ...] Usage:bbuild
 #
@@ -623,7 +558,7 @@ function runmain {
         "$funcall" "$@"
     fi
 }
-##bash-libs: tty.sh @ bf310b32 (1.4.1)
+##bash-libs: tty.sh @ 82f638b0 (after 1.4.1)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -633,7 +568,7 @@ tty:is_pipe() {
     [[ ! -t 1 ]]
 }
 
-##bash-libs: colours.sh @ bf310b32 (1.4.1)
+##bash-libs: colours.sh @ 82f638b0 (after 1.4.1)
 
 ### Colours for terminal Usage:bbuild
 # A series of shorthand colour flags for use in outputs, and functions to set your own flags.
@@ -786,7 +721,7 @@ colours:auto() {
 
 colours:auto
 
-##bash-libs: out.sh @ bf310b32 (1.4.1)
+##bash-libs: out.sh @ 82f638b0 (after 1.4.1)
 
 ### Console output handlers Usage:bbuild
 #
@@ -873,7 +808,7 @@ function out:fail {
 function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
-##bash-libs: readkv.sh @ bf310b32 (1.4.1)
+##bash-libs: readkv.sh @ 82f638b0 (after 1.4.1)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -935,6 +870,9 @@ function readkv:require {
 readkv:meaningful_data() {
     grep -v -P '^\s*(#.*)?$' "$1"
 }
+
+PAF_configdir="/etc/alpacka"
+
 ### Warning messages Usage:help
 #
 # You can set a warning message with the -w flag to display a warning before carrying out any one action.
@@ -957,7 +895,7 @@ readkv:meaningful_data() {
 ###/doc
 
 
-##bash-libs: isroot.sh @ bf310b32 (1.4.1)
+##bash-libs: isroot.sh @ 82f638b0 (after 1.4.1)
 
 ### isroot Usage:bbuild
 # Test for root access
@@ -1087,8 +1025,94 @@ paf:warn:warn-set() {
     fi
     exit
 }
+### Alpacka: Uniform Package Management Wrapper Usage:help
+# 
+# The `paf` command is a shorthand to allow use of a single package management command across distros.
+#
+# Whether you are runing Ubuntu, Fedora, Arch or other, these commands will all work, and perform the equivalent expected actions.
+#
+# ACTIVITIES AND OPTIONS
+# ----------------------
+#
+# Some package managers support independent activites to run before and after main actions.
+#
+#     -u
+#         update the package database
+#
+#     -c
+#         clean up interim packages and cache
+#
+#     -y
+#         assume yes
+#
+# ACTIONS
+# -------
+#
+# Only one action can be run at a time. The last one specified will be run. For example
+#
+#   paf -s htop
+#
+# would show info for htop, whereas
+#
+#   paf -s htop -i
+#
+# would install it.
+#
+#
+#
+# Search for keywords:
+#
+#    paf KEYWORDS ...
+#
+# Show info on each package
+#
+#    paf -s PACKAGES ...
+#
+# Install
+#
+#    paf -i PACKAGES ...
+#
+# Remove
+#     
+#     paf -r PACKAGES ...
+#
+#
+#
+#
+# Examples
+# --------
+#
+# Install 3 packages, after updating the package index if applicable:
+#
+#   paf -u -i htop vim tmux
+#
+# Perform a system upgrade, after upgrading the package index (if applicable):
+#
+#   paf -u -g
+#
+# Clean out package manager cache:
+#
+#   paf -c
+#
+###/doc
+
+### Alpacka Usage:help
+#
+# (C) Tai Kedzierski
+# https://github.com/taikedz/alpacka
+#
+# Provided under the terms of the GPL v3
+# (GNU General Public Licesne version 3)
+###/doc
+
 
 paf:main() {
+    if [[ "$1" = wait ]]; then
+        shift
+        paf:wait "$@"
+        exit
+    fi
+
     PAF_activities=(:)
     PAF_packages=(:)
     PAF_sources=(:)
@@ -1146,14 +1170,24 @@ paf:help() {
 }
 
 paf:sudo() {
+    local cmds=(:)
     if bincheck:has sudo; then
-        sudo "$@"
-        return "$?"
+        cmds+=(sudo)
     else
         [[ "$UID" = 0 ]] || out:fail "No sudo, and you are not root"
-
-        "$@"
     fi
+
+    # tmux MUST be inside sudo - do not leave a rooted tmux in unpriveleged space!
+    if [[ "$TERM" != screen ]] && bincheck:has tmux; then
+        cmds+=(tmux new bash "$0" wait)
+    fi
+
+    "${cmds[@]:1}" "$@"
+}
+
+paf:wait() {
+    "$@"
+    read -p "Press Enter to finish ... "
 }
 
 paf:get_package_manager() {
@@ -1334,7 +1368,7 @@ apt-get:has-release-upgrade() {
     bincheck:has do-release-upgrade || {
         if [[ "$(. /etc/os-release ; echo "$ID")" = ubuntu ]]; then
             out:warn "'ubuntu-release-upgrader-core' required - installing ..."
-            apt-get install ubuntu-release-upgrader-core
+            paf:sudo apt-get install ubuntu-release-upgrader-core
         else
             out:fail "Only supported on Ubuntu"
         fi
