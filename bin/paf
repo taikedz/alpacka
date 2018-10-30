@@ -3,7 +3,7 @@
 set -euo pipefail
 
 
-##bash-libs: autohelp.sh @ 82f638b0 (after 1.4.1)
+##bash-libs: autohelp.sh @ bf310b32 (1.4.1)
 
 ### Autohelp Usage:bbuild
 #
@@ -57,7 +57,7 @@ set -euo pipefail
 #
 # Example usage in a multi-function script:
 #
-#   #!usr/bin/env bash
+#   #!/bin/bash
 #
 #   ### Main help Usage:help
 #   # The main help
@@ -68,7 +68,7 @@ set -euo pipefail
 #   ###/doc
 #
 #   feature1() {
-#       autohelp:check:section feature_1 "$@"
+#       autohelp:check_section feature_1 "$@"
 #       echo "Feature I"
 #   }
 #
@@ -77,17 +77,26 @@ set -euo pipefail
 #   ###/doc
 #
 #   feature2() {
-#       autohelp:check:section feature_2 "$@"
+#       autohelp:check_section feature_2 "$@"
 #       echo "Feature II"
 #   }
 #
 #   main() {
+#       if [[ -z "$*" ]]; then
+#           ### No command specified Usage:no-command
+#           #No command specified. Try running with `--help`
+#           ###/doc
+#
+#           autohelp:print no-command
+#           exit 1
+#       fi
+#
 #       case "$1" in
 #       feature1|feature2)
 #           "$1" "$@"            # Pass the global script arguments through
 #           ;;
 #       *)
-#           autohelp:check-no-null "$@"  # Check if main help was asked for, if so, or if no args, exit with help
+#           autohelp:check "$@"  # Check if main help was asked for, if so, exits
 #
 #           # Main help not requested, return error
 #           echo "Unknown feature"
@@ -150,47 +159,20 @@ autohelp:paged() {
     autohelp:print "$@" | $PAGER
 }
 
-### autohelp:check-or-null ARGS ... Usage:bbuild
-# Print help if arguments are empty, or if arguments contain a '--help' token
-#
-###/doc
-autohelp:check-or-null() {
-    if [[ -z "$*" ]]; then
-        autohelp:print help "$0"
-        exit 0
-    else
-        autohelp:check:section "help" "$@"
-    fi
-}
-
-### autohelp:check-or-null:section SECTION ARGS ... Usage:bbuild
-# Print help selction if arguments are empty, or if arguments contain a '--help' token
-#
-###/doc
-autohelp:check-or-null() {
-    . <(args:use:local section -- "$@") ; 
-    if [[ -z "$*" ]]; then
-        autohelp:print "$section" "$0"
-        exit 0
-    else
-        autohelp:check:section "$section" "$@"
-    fi
-}
-
 ### autohelp:check ARGS ... Usage:bbuild
 #
 # Automatically print "help" sections and exit, if "--help" is detected in arguments
 #
 ###/doc
 autohelp:check() {
-    autohelp:check:section "help" "$@"
+    autohelp:check_section "help" "$@"
 }
 
-### autohelp:check:section SECTION ARGS ... Usage:bbuild
+### autohelp:check_section SECTION ARGS ... Usage:bbuild
 # Automatically print documentation for named section and exit, if "--help" is detected in arguments
 #
 ###/doc
-autohelp:check:section() {
+autohelp:check_section() {
     local section arg
     section="${1:-}"; shift || out:fail "No help section specified"
 
@@ -202,7 +184,7 @@ autohelp:check:section() {
         fi
     done
 }
-##bash-libs: bincheck.sh @ 82f638b0 (after 1.4.1)
+##bash-libs: bincheck.sh @ bf310b32 (1.4.1)
 
 ### bincheck:get COMMANDS ... Usage:bbuild
 #
@@ -274,7 +256,7 @@ bincheck:path() {
     
     } || echo "$binname"
 }
-##bash-libs: patterns.sh @ 82f638b0 (after 1.4.1)
+##bash-libs: patterns.sh @ bf310b32 (1.4.1)
 
 ### Useful patterns Usage:bbuild
 #
@@ -299,7 +281,7 @@ export PAT_cvar='^[a-zA-Z_][a-zA-Z0-9_]*$'
 export PAT_filename='^[a-zA-Z0-9_.-]$'
 export PAT_email="$PAT_filename@$PAT_filename.$PAT_cvar"
 
-##bash-libs: args.sh @ 82f638b0 (after 1.4.1)
+##bash-libs: args.sh @ bf310b32 (1.4.1)
 
 ### args Usage:bbuild
 #
@@ -523,7 +505,7 @@ args:use() {
 args:use:local() {
     ARGSLIB_scope=local args:use "$@"
 }
-##bash-libs: runmain.sh @ 82f638b0 (after 1.4.1)
+##bash-libs: runmain.sh @ bf310b32 (1.4.1)
 
 ### runmain SCRIPTNAME FUNCTION [ARGUMENTS ...] Usage:bbuild
 #
@@ -558,7 +540,7 @@ function runmain {
         "$funcall" "$@"
     fi
 }
-##bash-libs: tty.sh @ 82f638b0 (after 1.4.1)
+##bash-libs: tty.sh @ bf310b32 (1.4.1)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -568,7 +550,7 @@ tty:is_pipe() {
     [[ ! -t 1 ]]
 }
 
-##bash-libs: colours.sh @ 82f638b0 (after 1.4.1)
+##bash-libs: colours.sh @ bf310b32 (1.4.1)
 
 ### Colours for terminal Usage:bbuild
 # A series of shorthand colour flags for use in outputs, and functions to set your own flags.
@@ -721,7 +703,7 @@ colours:auto() {
 
 colours:auto
 
-##bash-libs: out.sh @ 82f638b0 (after 1.4.1)
+##bash-libs: out.sh @ bf310b32 (1.4.1)
 
 ### Console output handlers Usage:bbuild
 #
@@ -808,7 +790,7 @@ function out:fail {
 function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
-##bash-libs: readkv.sh @ 82f638b0 (after 1.4.1)
+##bash-libs: readkv.sh @ bf310b32 (1.4.1)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -895,7 +877,7 @@ PAF_configdir="/etc/alpacka"
 ###/doc
 
 
-##bash-libs: isroot.sh @ 82f638b0 (after 1.4.1)
+##bash-libs: isroot.sh @ bf310b32 (1.4.1)
 
 ### isroot Usage:bbuild
 # Test for root access
