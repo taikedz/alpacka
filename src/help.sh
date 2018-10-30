@@ -35,7 +35,7 @@
 #
 # Search for keywords:
 #
-#    paf KEYWORDS ...
+#    paf [-z] KEYWORDS ...
 #
 # Show info on each package
 #

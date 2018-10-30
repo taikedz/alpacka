@@ -127,9 +127,10 @@ paf:parse_arguments() {
 
         -g*)    PAF_action="upgrade" ; PAF_flag_upgrade="$arg" ;;
         -i*)    PAF_action="install" ; PAF_flag_install="$arg" ;;
-        -r*)    PAF_action="remove"  ; PAF_flag_remove="$arg" ;;
-        -l*)    PAF_action="list"    ; PAF_flag_list="$arg" ;;
-        -s*)    PAF_action="show"    ; PAF_flag_show="$arg" ;;
+        -r*)    PAF_action="remove"  ; PAF_flag_remove="$arg"  ;;
+        -l*)    PAF_action="list"    ; PAF_flag_list="$arg"    ;;
+        -s*)    PAF_action="show"    ; PAF_flag_show="$arg"    ;;
+        -z*)    PAF_action="search"  ; PAF_flag_search="$arg"  ;;
 
         -y) PAF_assume="yes" ;;
         -n) PAF_assume="no" ;;
