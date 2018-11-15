@@ -4,9 +4,18 @@ set -euo pipefail
 
 PAF_configdir="/etc/alpacka"
 
-#%include help.sh copyright.sh
+#%include help.sh
+#%include copyright.sh
 
-#%include autohelp.sh bincheck.sh args.sh runmain.sh out.sh readkv.sh
+#%include autohelp.sh
+#%include askuser.sh
+#%include bincheck.sh
+#%include args.sh
+#%include runmain.sh
+#%include out.sh
+#%include readkv.sh
+#%include isroot.sh
+
 #%include warn.sh
 
 paf:main() {
@@ -68,12 +77,28 @@ paf:help() {
 
 paf:sudo() {
     if bincheck:has sudo; then
-        sudo "$@"
+        paf:tmux sudo "$@"
         return "$?"
     else
-        [[ "$UID" = 0 ]] || out:fail "No sudo, and you are not root"
+        isroot:require "You must be root to run this script."
 
+        paf:tmux "$@"
+    fi
+}
+
+paf:tmux() {
+    if [[ -z "$SSH_TTY" ]] || [[ "$TERM" = screen ]]; then
         "$@"
+        return
+    fi
+
+    if ! bincheck:has tmux; then
+        out:warn "Running a package manager over SSH without wrapping it is unsafe - install tmux."
+        askuser:confirm "${CRED}Continue ?${CDEF}"
+        "$@"
+
+    else
+        tmux new "$@"
     fi
 }
 
