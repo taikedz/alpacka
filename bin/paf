@@ -1284,7 +1284,7 @@ paf:sudo() {
 }
 
 paf:tmux() {
-    if [[ -z "$SSH_TTY" ]] || [[ "$TERM" = screen ]]; then
+    if [[ -z "${SSH_TTY:-}" ]] || [[ "$TERM" = screen ]]; then
         "$@"
         return
     fi
