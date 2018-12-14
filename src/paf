@@ -8,11 +8,13 @@ PAF_configdir="/etc/alpacka"
 #%include copyright.sh
 
 #%include std/autohelp.sh
+#%include std/askuser.sh
 #%include std/bincheck.sh
 #%include std/args.sh
 #%include std/runmain.sh
 #%include std/out.sh
 #%include std/readkv.sh
+#%include std/isroot.sh
 
 #%include warn.sh
 
@@ -75,12 +77,28 @@ paf:help() {
 
 paf:sudo() {
     if bincheck:has sudo; then
-        sudo "$@"
+        paf:tmux sudo "$@"
         return "$?"
     else
-        [[ "$UID" = 0 ]] || out:fail "No sudo, and you are not root"
+        isroot:require "You must be root to run this script."
 
+        paf:tmux "$@"
+    fi
+}
+
+paf:tmux() {
+    if [[ -z "${SSH_TTY:-}" ]] || [[ "$TERM" = screen ]]; then
         "$@"
+        return
+    fi
+
+    if ! bincheck:has tmux; then
+        out:warn "Running a package manager over SSH without wrapping it is unsafe - install tmux."
+        askuser:confirm "${CRED}Continue ?${CDEF}"
+        "$@"
+
+    else
+        tmux new "$@"
     fi
 }
 
@@ -134,9 +152,10 @@ paf:parse_arguments() {
 
         -g*)    PAF_action="upgrade" ; PAF_flag_upgrade="$arg" ;;
         -i*)    PAF_action="install" ; PAF_flag_install="$arg" ;;
-        -r*)    PAF_action="remove"  ; PAF_flag_remove="$arg" ;;
-        -l*)    PAF_action="list"    ; PAF_flag_list="$arg" ;;
-        -s*)    PAF_action="show"    ; PAF_flag_show="$arg" ;;
+        -r*)    PAF_action="remove"  ; PAF_flag_remove="$arg"  ;;
+        -l*)    PAF_action="list"    ; PAF_flag_list="$arg"    ;;
+        -s*)    PAF_action="show"    ; PAF_flag_show="$arg"    ;;
+        -z*)    PAF_action="search"  ; PAF_flag_search="$arg"  ;;
 
         -y) PAF_assume="yes" ;;
         -n) PAF_assume="no" ;;

@@ -2,9 +2,9 @@
 #
 # Search:
 #
-# `-s` will perform an AND search, returning all packages with all the search terms
+# by default, searching will perform an AND search, returning all packages with all the search terms
 #
-# `-so` will perform an or search, returning all packages with at least one of the search terms
+# `-zo` will perform an or search, returning all packages with at least one of the search terms
 #
 ###/doc
 
@@ -70,7 +70,7 @@ tazpkg:search:or() {
 }
 
 tazpkg:search() {
-    if bincheck:has "-so" "$@" ; then
+    if [[ "${PAF_flag_search:-}" = "-zo" ]]; then
         tazpkg:search:or "${PAF_packages[@]:-}" | less
     else
         tazpkg:search:and "${PAF_packages[@]:-}" | less

@@ -8,10 +8,10 @@ Wrapper for package managers - use the same commands on all systems, stay sane.
 
 A few reasons:
 
-1. All package managers have their idisyncracies even with regard to activities they have in common. Alpacka unifies the workflow.
-2. Most package managers don't allow performing multiple associated actions in conjunction (index rebuild, cleanup); Alpacka provides single switches to activate each.
-3. Some package managers have limitations, dissociated commands, or complicated syntax - alpacka overcomes the two former, and provides a uniform syntax to get around the latter.
-4. No package managers allow setting pre-action warnings - this feature helps avoid butter-fingering an upgrade and downtiming a server unintentionally. Alpacka provides warnings with configurable timeoouts.
+1. All package managers have their idiosyncracies even with regard to activities they have in common. Alpacka unifies the workflow.
+2. Most package managers don't allow performing multiple associated actions in conjunction (index rebuild, install, cleanup); Alpacka provides single switches to activate each.
+3. Some package managers have limitations, dissociated commands, or complicated syntax; Alpacka overcomes the two former, and provides a uniform syntax to get around the latter.
+4. No package managers allow setting pre-action warnings - this feature helps avoid butter-fingering an upgrade and downtiming a server unintentionally. Alpacka provides warnings with configurable timeouts.
 5. I'm lazy and don't like retyping a command simply to change one part. Alpacka only runs the last action specified amongst info, install, remove, or system upgrade
 
 ## Install
@@ -21,7 +21,7 @@ A few reasons:
 
 And you're done.
 
-It installs to `/usr/local/bin` as the `paf` command (historical naming reasons lost...) and you just use it in the generally the same way on any of Ubuntu, Fedora, CentOS and SliTaz
+It installs to `/usr/local/bin` as the `paf` command (historical naming reasons lost...) and you just use it in generally the same way on any of Ubuntu, Fedora, CentOS, Arch, or SliTaz (and several more ... see below).
 
 ### Dependecies
 
@@ -53,9 +53,15 @@ This is not limited to installation either. Ever find yourself thinking, "was it
 
     paf -i tmux htop -u -c -y
 
-All actions will be carried out on Debian and Ubuntu, on Fedora the index update will be ignored. Less to think about.
+All actions will be carried out on Debian and Arch, but on Fedora the index update will simply be ignored. Less to think about.
 
 See [src/help.sh](src/help.sh) for details on all standard flags.
+
+## Run safe over SSH
+
+When running package manager commands over SSH, you want to be extra careful - if the connection drops in the middle of an installation, the process gets killed an you end up with a potentially broken system!
+
+`paf` tries to force any state-changing activities into a tmux session to safeguard against this.
 
 ## Get warnings
 
