@@ -19,7 +19,7 @@
 #
 ###/doc
 
-#%include isroot.sh
+#%include std/isroot.sh
 
 PAF_warningdir="$PAF_configdir/warnings"
 

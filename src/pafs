@@ -2,9 +2,14 @@
 
 set -u
 
-#%include search-help.sh copyright.sh
+#%include search-help.sh
+#%include copyright.sh
 
-#%include autohelp.sh out.sh debug.sh bincheck.sh readkv.sh
+#%include std/autohelp.sh
+#%include std/out.sh
+#%include std/debug.sh
+#%include std/bincheck.sh
+#%include std/readkv.sh
 
 #%include searchers.sh
 

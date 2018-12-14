@@ -31,7 +31,9 @@ set -u
 
 #%include copyright.sh
 
-#%include out.sh autohelp.sh bincheck.sh
+#%include std/out.sh
+#%include std/autohelp.sh
+#%include std/bincheck.sh
 
 autohelp:check "$@"
 

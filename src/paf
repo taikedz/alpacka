@@ -4,9 +4,16 @@ set -euo pipefail
 
 PAF_configdir="/etc/alpacka"
 
-#%include help.sh copyright.sh
+#%include help.sh
+#%include copyright.sh
 
-#%include autohelp.sh bincheck.sh args.sh runmain.sh out.sh readkv.sh
+#%include std/autohelp.sh
+#%include std/bincheck.sh
+#%include std/args.sh
+#%include std/runmain.sh
+#%include std/out.sh
+#%include std/readkv.sh
+
 #%include warn.sh
 
 paf:main() {
