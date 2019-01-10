@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+PAF_version="2.1"
+PAF_copyright="(C) Tai Kedzierski, conveyed under GPLv3"
+
 PAF_configdir="/etc/alpacka"
 
 #%include help.sh
@@ -131,6 +134,10 @@ paf:run_activity() {
 paf:parse_arguments() {
     for arg in "$@"; do
         case "$arg" in
+        --version)
+            paf:printversion
+            exit 0
+            ;;
         -w)
             paf:warn:warn-set "$@"
             exit 0
@@ -188,6 +195,11 @@ paf:issue_warnings() {
     if [[ "$PAF_warned" = true ]]; then
         paf:warn:grace-wait
     fi
+}
+
+paf:printversion() {
+    echo "Alpacka, $PAF_version"
+    echo "$PAF_copyright"
 }
 
 #%include apt.sh dnf.sh tazpkg.sh apk.sh zypper.sh pacman.sh
