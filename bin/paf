@@ -1266,12 +1266,15 @@ paf:warn:warn-set() {
 }
 
 paf:main() {
+    trap pause_check EXIT
+
     PAF_activities=(:)
     PAF_packages=(:)
     PAF_sources=(:)
     PAF_action=search
     PAF_assume=
-    END_PAUSE=false
+    PAF_end_pause=false
+    PAF_force_tmux=false
 
     paf:preflight_check
 
@@ -1287,9 +1290,7 @@ paf:main() {
 
     paf:parse_arguments "$@"
     
-    if [[ -n "${PAF_activities[*]:-}" ]] || [[ ! "$PAF_action" =~  ^(search|show|list)$ ]]; then
-        paf:tmux "$0" "$@"
-    fi
+    paf:tmux "$0" "$@"
 
     paf:run_activity update
 
@@ -1300,9 +1301,10 @@ paf:main() {
     fi
 
     paf:run_activity clean
+}
 
-    
-    if [[ "$END_PAUSE" = true ]]; then
+pause_check() {
+    if [[ "$PAF_end_pause" = true ]]; then
         read -p "press return to end ..."
     fi
 }
@@ -1349,20 +1351,25 @@ paf:tmux() {
     #   and exit, rather than repeating the process in the
     #   non-tmux session
 
-    # We are not in SSH, or we are already in screen/tmux
-    if [[ -z "${SSH_TTY:-}" ]] || [[ "$TERM" = screen ]]; then
+    # We are already in screen/tmux; or we are not in SSH, and we are not forcing tmux
+    if [[ "$TERM" = screen ]] || ([[ -z "${SSH_TTY:-}" ]] && [[ "$PAF_force_tmux" != true ]]); then
         return
     fi
 
-    # Sanity check
-    if ! bincheck:has tmux; then
-        out:warn "Running a package manager over SSH without wrapping it is unsafe - install tmux."
-        askuser:confirm "${CRED}Continue ?${CDEF}" || exit 1
-        return
+    if [[ "$PAF_force_tmux" = true ]] ||
+        [[ -n "${PAF_activities[*]:-}" ]] || # All activities trigger tmux
+        [[ ! "$PAF_action" =~  ^(search|show|list)$ ]] # Don't need privilege - this could change depending on package manager
+        then
 
-    else
-        tmux new "$@" --pause
-        exit
+        if ! bincheck:has tmux; then
+            out:warn "Running a package manager over SSH without wrapping it is unsafe - install tmux."
+            askuser:confirm "${CRED}Continue ?${CDEF}" || exit 1
+            return
+
+        else
+            tmux new "$@" --pause
+            exit
+        fi
     fi
 }
 
@@ -1400,7 +1407,10 @@ paf:parse_arguments() {
             exit 0
             ;;
         --pause)
-            END_PAUSE=true
+            PAF_end_pause=true
+            ;;
+        --tmux)
+            PAF_force_tmux=true
             ;;
         -w)
             paf:warn:warn-set "$@"
