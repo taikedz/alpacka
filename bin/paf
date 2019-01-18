@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-PAF_version="2.1"
+PAF_version="2.2"
 PAF_copyright="(C) Tai Kedzierski, conveyed under GPLv3"
 
 PAF_configdir="/etc/alpacka"
@@ -88,7 +88,7 @@ PAF_configdir="/etc/alpacka"
 ###/doc
 
 
-##bash-libs: tty.sh @ 1a1295d2 (2.0.4)
+##bash-libs: tty.sh @ addb4c5b (2.0.5)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -98,7 +98,7 @@ tty:is_pipe() {
     [[ ! -t 1 ]]
 }
 
-##bash-libs: colours.sh @ 1a1295d2 (2.0.4)
+##bash-libs: colours.sh @ addb4c5b (2.0.5)
 
 ### Colours for terminal Usage:bbuild
 # A series of shorthand colour flags for use in outputs, and functions to set your own flags.
@@ -251,7 +251,7 @@ colours:auto() {
 
 colours:auto
 
-##bash-libs: out.sh @ 1a1295d2 (2.0.4)
+##bash-libs: out.sh @ addb4c5b (2.0.5)
 
 ### Console output handlers Usage:bbuild
 #
@@ -339,7 +339,7 @@ function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
 
-##bash-libs: syntax-extensions.sh @ 1a1295d2 (2.0.4)
+##bash-libs: syntax-extensions.sh @ addb4c5b (2.0.5)
 
 ### Syntax Extensions Usage:syntax
 #
@@ -453,7 +453,7 @@ args:use:local() {
     syntax-extensions:use:local "$@"
 }
 
-##bash-libs: autohelp.sh @ 1a1295d2 (2.0.4)
+##bash-libs: autohelp.sh @ addb4c5b (2.0.5)
 
 ### Autohelp Usage:bbuild
 #
@@ -652,7 +652,7 @@ autohelp:check:section() {
     done
 }
 
-##bash-libs: askuser.sh @ 1a1295d2 (2.0.4)
+##bash-libs: askuser.sh @ addb4c5b (2.0.5)
 
 ### askuser Usage:bbuild
 # Present the user with questions on stderr
@@ -777,7 +777,7 @@ function askuser:choose {
         fi
     done
 }
-##bash-libs: bincheck.sh @ 1a1295d2 (2.0.4)
+##bash-libs: bincheck.sh @ addb4c5b (2.0.5)
 
 ### bincheck:get COMMANDS ... Usage:bbuild
 #
@@ -849,7 +849,7 @@ bincheck:path() {
     
     } || echo "$binname"
 }
-##bash-libs: patterns.sh @ 1a1295d2 (2.0.4)
+##bash-libs: patterns.sh @ addb4c5b (2.0.5)
 
 ### Useful patterns Usage:bbuild
 #
@@ -874,7 +874,7 @@ export PAT_cvar='^[a-zA-Z_][a-zA-Z0-9_]*$'
 export PAT_filename='^[a-zA-Z0-9_.-]$'
 export PAT_email="$PAT_filename@$PAT_filename.$PAT_cvar"
 
-##bash-libs: args.sh @ 1a1295d2 (2.0.4)
+##bash-libs: args.sh @ addb4c5b (2.0.5)
 
 ### args Usage:bbuild
 #
@@ -1014,7 +1014,7 @@ args:after() {
 
     RETARR_ARGSAFTER=("$@")
 }
-##bash-libs: runmain.sh @ 1a1295d2 (2.0.4)
+##bash-libs: runmain.sh @ addb4c5b (2.0.5)
 
 ### runmain SCRIPTNAME FUNCTION [ARGUMENTS ...] Usage:bbuild
 #
@@ -1049,7 +1049,7 @@ function runmain {
         "$funcall" "$@"
     fi
 }
-##bash-libs: readkv.sh @ 1a1295d2 (2.0.4)
+##bash-libs: readkv.sh @ addb4c5b (2.0.5)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -1112,7 +1112,7 @@ readkv:meaningful_data() {
     grep -v -P '^\s*(#.*)?$' "$1"
 }
 
-##bash-libs: isroot.sh @ 1a1295d2 (2.0.4)
+##bash-libs: isroot.sh @ addb4c5b (2.0.5)
 
 ### isroot Usage:bbuild
 # Test for root access
@@ -1271,6 +1271,7 @@ paf:main() {
     PAF_sources=(:)
     PAF_action=search
     PAF_assume=
+    END_PAUSE=false
 
     paf:preflight_check
 
@@ -1285,6 +1286,10 @@ paf:main() {
     fi
 
     paf:parse_arguments "$@"
+    
+    if [[ -n "${PAF_activities[*]:-}" ]] || [[ ! "$PAF_action" =~  ^(search|show|list)$ ]]; then
+        paf:tmux "$0" "$@"
+    fi
 
     paf:run_activity update
 
@@ -1295,6 +1300,11 @@ paf:main() {
     fi
 
     paf:run_activity clean
+
+    
+    if [[ "$END_PAUSE" = true ]]; then
+        read -p "press return to end ..."
+    fi
 }
 
 paf:preflight_check() {
@@ -1323,29 +1333,36 @@ paf:help() {
 }
 
 paf:sudo() {
-    if bincheck:has sudo; then
-        paf:tmux sudo "$@"
+    if ! isroot && bincheck:has sudo; then
+        sudo "$@"
         return "$?"
     else
         isroot:require "You must be root to run this script."
-
-        paf:tmux "$@"
+        "$@"
     fi
 }
 
 paf:tmux() {
+    # This is called at the top of the script.
+    # If we are already in tmux, we return and let the script run
+    # However if we are not in tmux, we attempt to wrap
+    #   and exit, rather than repeating the process in the
+    #   non-tmux session
+
+    # We are not in SSH, or we are already in screen/tmux
     if [[ -z "${SSH_TTY:-}" ]] || [[ "$TERM" = screen ]]; then
-        "$@"
         return
     fi
 
+    # Sanity check
     if ! bincheck:has tmux; then
         out:warn "Running a package manager over SSH without wrapping it is unsafe - install tmux."
-        askuser:confirm "${CRED}Continue ?${CDEF}"
-        "$@"
+        askuser:confirm "${CRED}Continue ?${CDEF}" || exit 1
+        return
 
     else
-        tmux new "$@"
+        tmux new "$@" --pause
+        exit
     fi
 }
 
@@ -1381,6 +1398,9 @@ paf:parse_arguments() {
         --version)
             paf:printversion
             exit 0
+            ;;
+        --pause)
+            END_PAUSE=true
             ;;
         -w)
             paf:warn:warn-set "$@"

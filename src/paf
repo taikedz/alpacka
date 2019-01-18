@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-PAF_version="2.1"
+PAF_version="2.2"
 PAF_copyright="(C) Tai Kedzierski, conveyed under GPLv3"
 
 PAF_configdir="/etc/alpacka"
@@ -27,6 +27,7 @@ paf:main() {
     PAF_sources=(:)
     PAF_action=search
     PAF_assume=
+    END_PAUSE=false
 
     paf:preflight_check
 
@@ -41,6 +42,10 @@ paf:main() {
     fi
 
     paf:parse_arguments "$@"
+    
+    if [[ -n "${PAF_activities[*]:-}" ]] || [[ ! "$PAF_action" =~  ^(search|show|list)$ ]]; then
+        paf:tmux "$0" "$@"
+    fi
 
     paf:run_activity update
 
@@ -51,6 +56,11 @@ paf:main() {
     fi
 
     paf:run_activity clean
+
+    
+    if [[ "$END_PAUSE" = true ]]; then
+        read -p "press return to end ..."
+    fi
 }
 
 paf:preflight_check() {
@@ -79,29 +89,36 @@ paf:help() {
 }
 
 paf:sudo() {
-    if bincheck:has sudo; then
-        paf:tmux sudo "$@"
+    if ! isroot && bincheck:has sudo; then
+        sudo "$@"
         return "$?"
     else
         isroot:require "You must be root to run this script."
-
-        paf:tmux "$@"
+        "$@"
     fi
 }
 
 paf:tmux() {
+    # This is called at the top of the script.
+    # If we are already in tmux, we return and let the script run
+    # However if we are not in tmux, we attempt to wrap
+    #   and exit, rather than repeating the process in the
+    #   non-tmux session
+
+    # We are not in SSH, or we are already in screen/tmux
     if [[ -z "${SSH_TTY:-}" ]] || [[ "$TERM" = screen ]]; then
-        "$@"
         return
     fi
 
+    # Sanity check
     if ! bincheck:has tmux; then
         out:warn "Running a package manager over SSH without wrapping it is unsafe - install tmux."
-        askuser:confirm "${CRED}Continue ?${CDEF}"
-        "$@"
+        askuser:confirm "${CRED}Continue ?${CDEF}" || exit 1
+        return
 
     else
-        tmux new "$@"
+        tmux new "$@" --pause
+        exit
     fi
 }
 
@@ -137,6 +154,9 @@ paf:parse_arguments() {
         --version)
             paf:printversion
             exit 0
+            ;;
+        --pause)
+            END_PAUSE=true
             ;;
         -w)
             paf:warn:warn-set "$@"
