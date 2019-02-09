@@ -233,7 +233,14 @@ paf:printversion() {
     echo "$PAF_copyright"
 }
 
-#%include apt.sh dnf.sh tazpkg.sh apk.sh zypper.sh pacman.sh
-# emerge.sh # To be implemented
+#%include apt.sh
+#%include dnf.sh
+#%include tazpkg.sh
+#%include apk.sh
+#%include zypper.sh
+#%include pacman.sh
+# TODO To be implemented
+# emerge.sh
+# eopkg.sh
 
 runmain paf paf:main "$@"
