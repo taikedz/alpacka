@@ -1,3 +1,5 @@
+> Moved to <https://gitlab.com/taikedz/alpacka>
+
 # alpacka
 
 Wrapper for package managers - use the same commands on all systems, stay sane.
